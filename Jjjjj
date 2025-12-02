@@ -1,100 +1,55 @@
-
 --[[
-    SimpleSpy v2.2 (Stealth Edition)
-    Credits:
-        exx - original creator
-        Frosty - GUI to Lua
-        Enhanced for stealth and mobile
+    Devil Spy v3.0 (Anti-Cheat Evasion)
+    Advanced remote spy with anti-detection
+    Color Scheme: Black, Dark Gray, Dark Purple, Purple
 ]]
 
--- Скрываем скрипт от античита
-local function secureLoad()
-    local secureEnv = {
-        game = game,
-        workspace = workspace,
-        script = script,
-        getfenv = getfenv,
-        setfenv = setfenv,
-        loadstring = loadstring,
-        pcall = pcall,
-        xpcall = xpcall,
-        coroutine = coroutine,
-        require = require,
-        spawn = spawn,
-        delay = delay,
-        tick = tick,
-        time = time,
-        wait = wait,
-        warn = warn,
-        print = print,
-        type = type,
-        typeof = typeof,
-        tostring = tostring,
-        tonumber = tonumber,
-        unpack = unpack,
-        table = table,
-        string = string,
-        math = math,
-        Vector2 = Vector2,
-        Vector3 = Vector3,
-        Color3 = Color3,
-        UDim2 = UDim2,
-        UDim = UDim,
-        Instance = Instance,
-        Enum = Enum,
-        Axes = Axes,
-        BrickColor = BrickColor,
-        CFrame = CFrame,
-        ColorSequence = ColorSequence,
-        Faces = Faces,
-        NumberRange = NumberRange,
-        NumberSequence = NumberSequence,
-        PathWaypoint = PathWaypoint,
-        PhysicalProperties = PhysicalProperties,
-        Random = Random,
-        Ray = Ray,
-        Rect = Rect,
-        Region3 = Region3,
-        Region3int16 = Region3int16,
-        TweenInfo = TweenInfo,
-        getgenv = getgenv or function() return _G end,
-        getrenv = getrenv or function() return getfenv() end,
-        gethui = gethui or function() return game:GetService("CoreGui") end,
-        getreg = getreg or function() return debug.getregistry() end,
-        getgc = getgc or function() return {} end,
-        getnilinstances = getnilinstances or function() return {} end,
-        getsenv = getsenv or function() return getfenv() end,
-        getthreadcontext = getthreadcontext or function() return 0 end,
-        getcallingscript = getcallingscript or function() return nil end,
-        islclosure = islclosure or function(f) return true end,
-        checkcaller = checkcaller or function() return false end,
-        clonefunction = clonefunction or function(f) return f end,
-        setclipboard = setclipboard or function() end,
-        newcclosure = newcclosure or function(f) return f end,
-        hookfunction = hookfunction or function(f, g) return f end,
-        getnamecallmethod = getnamecallmethod or function() return "" end,
-        getrawmetatable = getrawmetatable or function(t) return getmetatable(t) end,
-        setreadonly = setreadonly or function() end
-    }
-    
-    -- Загружаем скрипт в защищенном окружении
-    local func, err = loadstring(script.Source, "SimpleSpy")
-    if not func then
-        warn("SimpleSpy Load Error:", err)
-        return
+-- Anti-anti-cheat measures
+do
+    -- Prevent gcinfo detection by using incremental garbage collection
+    local function safeGC()
+        local originalGC = gcinfo
+        local callCount = 0
+        local lastCall = tick()
+        
+        return function()
+            callCount = callCount + 1
+            local currentTime = tick()
+            
+            -- Only allow gcinfo calls with reasonable intervals
+            if currentTime - lastCall < 0.1 then
+                return 0
+            end
+            
+            lastCall = currentTime
+            
+            -- Return cached value for rapid succession calls
+            if callCount % 10 == 0 then
+                return originalGC()
+            else
+                return 0
+            end
+        end
     end
     
-    setfenv(func, setmetatable(secureEnv, {__index = getfenv()}))
-    return func()
+    -- Replace gcinfo with safe version
+    if type(gcinfo) == "function" then
+        local realGC = gcinfo
+        _G.gcinfo = safeGC()
+        
+        -- Restore for legitimate uses
+        spawn(function()
+            while true do
+                wait(5)
+                _G.gcinfo = realGC
+                wait(0.1)
+                _G.gcinfo = safeGC()
+            end
+        end)
+    end
 end
 
--- Запускаем в защищенном режиме
-local success, result = pcall(secureLoad)
-if not success then
-    warn("SimpleSpy failed to load securely:", result)
-end
-
--- Далее оригинальный код с модификациями
+-- Services
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
@@ -103,259 +58,191 @@ local TweenService = game:GetService("TweenService")
 local TextService = game:GetService("TextService")
 local HttpService = game:GetService("HttpService")
 
--- Загружаем Highlight библиотеку
-local Highlight
-pcall(function()
-    Highlight = loadstring(game:HttpGet("https://github.com/exxtremestuffs/SimpleSpySource/raw/master/highlight.lua"))()
-end)
+-- Random identifier for stealth
+local spyId = "DEVIL_" .. tostring(math.random(10000, 99999))
+local sessionKey = HttpService:GenerateGUID(false):sub(1, 12)
 
--- Если не удалось загрузить, создаем простую заглушку
-if not Highlight then
-    Highlight = {}
-    function Highlight.new(frame)
-        local obj = {}
-        function obj:setRaw(text)
-            if frame:FindFirstChild("CodeBox") then
-                frame.CodeBox.Text = text
-            end
-        end
-        function obj:getString()
-            if frame:FindFirstChild("CodeBox") then
-                return frame.CodeBox.Text
-            end
-            return ""
-        end
-        return obj
-    end
-end
+-- Create main GUI
+local DevilSpy = Instance.new("ScreenGui")
+DevilSpy.Name = spyId
+DevilSpy.ResetOnSpawn = false
+DevilSpy.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+DevilSpy.IgnoreGuiInset = true
 
--- Создаем случайный идентификатор для скрытия от античита
-local spyId = HttpService:GenerateGUID(false):sub(1, 8)
-local spyName = "UI_" .. spyId
+-- Toggle button (Dark Purple)
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Name = "DevilToggle"
+ToggleBtn.Parent = DevilSpy
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(75, 0, 130) -- Dark Purple
+ToggleBtn.BackgroundTransparency = 0.2
+ToggleBtn.BorderSizePixel = 0
+ToggleBtn.Position = UDim2.new(0, 20, 0, 20)
+ToggleBtn.Size = UDim2.new(0, 45, 0, 45)
+ToggleBtn.Text = "👿"
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.TextSize = 22
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.AutoButtonColor = true
+ToggleBtn.Active = true
+ToggleBtn.Draggable = true
 
--- Глобальная переменная скрытого типа
-local SimpleSpyGlobal = {
-    _version = "2.2.stealth",
-    _loaded = false,
-    _instance = nil
-}
+-- Make it round
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(1, 0)
+ToggleCorner.Parent = ToggleBtn
 
--- Создаем главный GUI
-local SimpleSpy2 = Instance.new("ScreenGui")
-SimpleSpy2.Name = spyName
-SimpleSpy2.ResetOnSpawn = false
-SimpleSpy2.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-SimpleSpy2.IgnoreGuiInset = true
-SimpleSpy2.Parent = CoreGui
+-- Glow effect
+local ToggleGlow = Instance.new("UIStroke")
+ToggleGlow.Color = Color3.fromRGB(138, 43, 226) -- Purple
+ToggleGlow.Thickness = 2
+ToggleGlow.Transparency = 0.5
+ToggleGlow.Parent = ToggleBtn
 
--- Скрытая кнопка для показа/скрытия (круглая, полупрозрачная)
-local ToggleButton = Instance.new("TextButton")
-ToggleButton.Name = "ToggleBtn"
-ToggleButton.Parent = SimpleSpy2
-ToggleButton.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
-ToggleButton.BackgroundTransparency = 0.3
-ToggleButton.BorderSizePixel = 0
-ToggleButton.Position = UDim2.new(0, 20, 0, 20)
-ToggleButton.Size = UDim2.new(0, 40, 0, 40)
-ToggleButton.Text = "S"
-ToggleButton.TextColor3 = Color3.fromRGB(220, 220, 220)
-ToggleButton.TextSize = 18
-ToggleButton.Font = Enum.Font.GothamBold
-ToggleButton.AutoButtonColor = true
-ToggleButton.Visible = true
-ToggleButton.Active = true
-ToggleButton.Draggable = true
+-- Main window (Black/Dark Gray)
+local MainWindow = Instance.new("Frame")
+MainWindow.Name = "DevilWindow"
+MainWindow.Parent = DevilSpy
+MainWindow.BackgroundColor3 = Color3.fromRGB(15, 15, 20) -- Almost Black
+MainWindow.BackgroundTransparency = 0.05
+MainWindow.BorderSizePixel = 0
+MainWindow.Position = UDim2.new(0.5, -275, 0.5, -200)
+MainWindow.Size = UDim2.new(0, 550, 0, 400)
+MainWindow.Visible = false
+MainWindow.Active = true
+MainWindow.Selectable = true
+MainWindow.Draggable = true
 
--- Эффект округления
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(1, 0)
-UICorner.Parent = ToggleButton
-
--- Эффект тени
-local UIStroke = Instance.new("UIStroke")
-UIStroke.Color = Color3.fromRGB(100, 100, 100)
-UIStroke.Thickness = 1
-UIStroke.Parent = ToggleButton
-
--- Главное окно (скрыто по умолчанию)
-local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainWindow"
-MainFrame.Parent = SimpleSpy2
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-MainFrame.BackgroundTransparency = 0.05
-MainFrame.BorderSizePixel = 0
-MainFrame.Position = UDim2.new(0.5, -250, 0.5, -175)
-MainFrame.Size = UDim2.new(0, 500, 0, 350)
-MainFrame.Visible = false
-MainFrame.Active = true
-MainFrame.Selectable = true
-MainFrame.Draggable = true
-
--- Эффект размытия фона
-local BlurEffect = Instance.new("BlurEffect")
-BlurEffect.Size = 10
-BlurEffect.Parent = MainFrame
-
--- Эффект скругления окна
+-- Window styling
 local WindowCorner = Instance.new("UICorner")
-WindowCorner.CornerRadius = UDim.new(0, 12)
-WindowCorner.Parent = MainFrame
+WindowCorner.CornerRadius = UDim.new(0, 15)
+WindowCorner.Parent = MainWindow
 
--- Эффект границы
 local WindowStroke = Instance.new("UIStroke")
-WindowStroke.Color = Color3.fromRGB(60, 60, 70)
+WindowStroke.Color = Color3.fromRGB(75, 0, 130) -- Dark Purple
 WindowStroke.Thickness = 2
-WindowStroke.Parent = MainFrame
+WindowStroke.Parent = MainWindow
 
--- Эффект тени
-local Shadow = Instance.new("ImageLabel")
-Shadow.Name = "Shadow"
-Shadow.Parent = MainFrame
-Shadow.BackgroundTransparency = 1
-Shadow.Size = UDim2.new(1, 20, 1, 20)
-Shadow.Position = UDim2.new(0, -10, 0, -10)
-Shadow.Image = "rbxassetid://5554236805"
-Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-Shadow.ImageTransparency = 0.8
-Shadow.ScaleType = Enum.ScaleType.Slice
-Shadow.SliceCenter = Rect.new(10, 10, 118, 118)
-Shadow.ZIndex = -1
-
--- Верхняя панель
+-- Top bar (Dark Gray)
 local TopBar = Instance.new("Frame")
 TopBar.Name = "TopBar"
-TopBar.Parent = MainFrame
-TopBar.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+TopBar.Parent = MainWindow
+TopBar.BackgroundColor3 = Color3.fromRGB(30, 30, 40) -- Dark Gray
 TopBar.BorderSizePixel = 0
-TopBar.Size = UDim2.new(1, 0, 0, 40)
+TopBar.Size = UDim2.new(1, 0, 0, 45)
 
 local TopBarCorner = Instance.new("UICorner")
-TopBarCorner.CornerRadius = UDim.new(0, 12, 0, 0)
+TopBarCorner.CornerRadius = UDim.new(0, 15, 0, 0)
 TopBarCorner.Parent = TopBar
 
--- Заголовок
+-- Title (Purple)
 local Title = Instance.new("TextLabel")
 Title.Name = "Title"
 Title.Parent = TopBar
 Title.BackgroundTransparency = 1
-Title.Position = UDim2.new(0, 15, 0, 0)
+Title.Position = UDim2.new(0, 20, 0, 0)
 Title.Size = UDim2.new(0, 200, 1, 0)
-Title.Font = Enum.Font.GothamMedium
-Title.Text = "SIMPLE SPY"
-Title.TextColor3 = Color3.fromRGB(220, 220, 220)
-Title.TextSize = 18
+Title.Font = Enum.Font.GothamBold
+Title.Text = "DEVIL SPY"
+Title.TextColor3 = Color3.fromRGB(138, 43, 226) -- Purple
+Title.TextSize = 20
 Title.TextXAlignment = Enum.TextXAlignment.Left
 
--- Кнопка статуса
-local StatusButton = Instance.new("TextButton")
-StatusButton.Name = "StatusButton"
-StatusButton.Parent = TopBar
-StatusButton.BackgroundColor3 = Color3.fromRGB(76, 175, 80)
-StatusButton.BorderSizePixel = 0
-StatusButton.Position = UDim2.new(1, -120, 0, 8)
-StatusButton.Size = UDim2.new(0, 100, 0, 24)
-StatusButton.Font = Enum.Font.Gotham
-StatusButton.Text = "ACTIVE"
-StatusButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-StatusButton.TextSize = 12
-StatusButton.AutoButtonColor = false
+-- Status button
+local StatusBtn = Instance.new("TextButton")
+StatusBtn.Name = "Status"
+StatusBtn.Parent = TopBar
+StatusBtn.BackgroundColor3 = Color3.fromRGB(75, 0, 130) -- Dark Purple
+StatusBtn.BorderSizePixel = 0
+StatusBtn.Position = UDim2.new(1, -130, 0, 10)
+StatusBtn.Size = UDim2.new(0, 100, 0, 25)
+StatusBtn.Font = Enum.Font.GothamBold
+StatusBtn.Text = "ACTIVE"
+StatusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+StatusBtn.TextSize = 12
+StatusBtn.AutoButtonColor = false
 
 local StatusCorner = Instance.new("UICorner")
-StatusCorner.CornerRadius = UDim.new(0, 4)
-StatusCorner.Parent = StatusButton
+StatusCorner.CornerRadius = UDim.new(0, 5)
+StatusCorner.Parent = StatusBtn
 
--- Кнопка закрытия
-local CloseButton = Instance.new("TextButton")
-CloseButton.Name = "CloseButton"
-CloseButton.Parent = TopBar
-CloseButton.BackgroundTransparency = 1
-CloseButton.Position = UDim2.new(1, -40, 0, 0)
-CloseButton.Size = UDim2.new(0, 40, 1, 0)
-CloseButton.Font = Enum.Font.GothamBold
-CloseButton.Text = "×"
-CloseButton.TextColor3 = Color3.fromRGB(220, 220, 220)
-CloseButton.TextSize = 24
-CloseButton.AutoButtonColor = true
+-- Close button
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Name = "Close"
+CloseBtn.Parent = TopBar
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Position = UDim2.new(1, -45, 0, 0)
+CloseBtn.Size = UDim2.new(0, 45, 1, 0)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.Text = "×"
+CloseBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+CloseBtn.TextSize = 28
+CloseBtn.AutoButtonColor = true
 
--- Основное содержимое
+-- Content area
 local Content = Instance.new("Frame")
 Content.Name = "Content"
-Content.Parent = MainFrame
+Content.Parent = MainWindow
 Content.BackgroundTransparency = 1
-Content.Position = UDim2.new(0, 0, 0, 40)
-Content.Size = UDim2.new(1, 0, 1, -40)
+Content.Position = UDim2.new(0, 0, 0, 45)
+Content.Size = UDim2.new(1, 0, 1, -45)
 
--- Левая панель (логи)
+-- Left panel (Remote logs) - Dark Gray
 local LeftPanel = Instance.new("Frame")
-LeftPanel.Name = "LeftPanel"
+LeftPanel.Name = "LogsPanel"
 LeftPanel.Parent = Content
-LeftPanel.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+LeftPanel.BackgroundColor3 = Color3.fromRGB(25, 25, 35) -- Dark Gray
 LeftPanel.BorderSizePixel = 0
-LeftPanel.Size = UDim2.new(0, 200, 1, 0)
+LeftPanel.Size = UDim2.new(0, 220, 1, 0)
 
-local LeftPanelCorner = Instance.new("UICorner")
-LeftPanelCorner.CornerRadius = UDim.new(0, 0, 0, 12)
-LeftPanelCorner.Parent = LeftPanel
-
--- Заголовок логов
+-- Logs title
 local LogsTitle = Instance.new("TextLabel")
 LogsTitle.Name = "LogsTitle"
 LogsTitle.Parent = LeftPanel
-LogsTitle.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+LogsTitle.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
 LogsTitle.BorderSizePixel = 0
-LogsTitle.Size = UDim2.new(1, 0, 0, 30)
+LogsTitle.Size = UDim2.new(1, 0, 0, 35)
 LogsTitle.Font = Enum.Font.Gotham
 LogsTitle.Text = "REMOTE LOGS"
 LogsTitle.TextColor3 = Color3.fromRGB(180, 180, 180)
 LogsTitle.TextSize = 14
 
--- Список логов
-local LogList = Instance.new("ScrollingFrame")
-LogList.Name = "LogList"
-LogList.Parent = LeftPanel
-LogList.BackgroundTransparency = 1
-LogList.BorderSizePixel = 0
-LogList.Position = UDim2.new(0, 0, 0, 30)
-LogList.Size = UDim2.new(1, 0, 1, -30)
-LogList.CanvasSize = UDim2.new(0, 0, 0, 0)
-LogList.ScrollBarThickness = 4
-LogList.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 100)
+-- Logs list
+local LogsList = Instance.new("ScrollingFrame")
+LogsList.Name = "LogsList"
+LogsList.Parent = LeftPanel
+LogsList.BackgroundTransparency = 1
+LogsList.BorderSizePixel = 0
+LogsList.Position = UDim2.new(0, 0, 0, 35)
+LogsList.Size = UDim2.new(1, 0, 1, -35)
+LogsList.CanvasSize = UDim2.new(0, 0, 0, 0)
+LogsList.ScrollBarThickness = 4
+LogsList.ScrollBarImageColor3 = Color3.fromRGB(75, 0, 130) -- Dark Purple
 
-local UIListLayout = Instance.new("UIListLayout")
-UIListLayout.Parent = LogList
-UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-UIListLayout.Padding = UDim.new(0, 2)
+local LogsLayout = Instance.new("UIListLayout")
+LogsLayout.Parent = LogsList
+LogsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+LogsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+LogsLayout.Padding = UDim.new(0, 3)
 
--- Правая панель
+-- Right panel (Code/Buttons) - Black
 local RightPanel = Instance.new("Frame")
-RightPanel.Name = "RightPanel"
+RightPanel.Name = "CodePanel"
 RightPanel.Parent = Content
-RightPanel.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+RightPanel.BackgroundColor3 = Color3.fromRGB(10, 10, 15) -- Black
 RightPanel.BorderSizePixel = 0
-RightPanel.Position = UDim2.new(0, 200, 0, 0)
-RightPanel.Size = UDim2.new(1, -200, 1, 0)
+RightPanel.Position = UDim2.new(0, 220, 0, 0)
+RightPanel.Size = UDim2.new(1, -220, 1, 0)
 
-local RightPanelCorner = Instance.new("UICorner")
-RightPanelCorner.CornerRadius = UDim.new(0, 0, 0, 12)
-RightPanelCorner.Parent = RightPanel
-
--- Кодовая панель
-local CodeBoxFrame = Instance.new("Frame")
-CodeBoxFrame.Name = "CodeBoxFrame"
-CodeBoxFrame.Parent = RightPanel
-CodeBoxFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-CodeBoxFrame.BorderSizePixel = 0
-CodeBoxFrame.Size = UDim2.new(1, 0, 0.7, 0)
-
+-- Code box
 local CodeBox = Instance.new("TextBox")
 CodeBox.Name = "CodeBox"
-CodeBox.Parent = CodeBoxFrame
-CodeBox.BackgroundTransparency = 1
-CodeBox.Position = UDim2.new(0, 10, 0, 10)
-CodeBox.Size = UDim2.new(1, -20, 1, -20)
+CodeBox.Parent = RightPanel
+CodeBox.BackgroundColor3 = Color3.fromRGB(5, 5, 10)
+CodeBox.BorderSizePixel = 0
+CodeBox.Position = UDim2.new(0, 15, 0, 15)
+CodeBox.Size = UDim2.new(1, -30, 0.65, -20)
 CodeBox.Font = Enum.Font.Code
-CodeBox.Text = "-- SimpleSpy v2.2 (Stealth Edition)\n-- Select a remote to view generated script"
+CodeBox.Text = "-- Devil Spy v3.0 | Session: " .. sessionKey .. "\n-- Select a remote to view generated script"
 CodeBox.TextColor3 = Color3.fromRGB(220, 220, 220)
 CodeBox.TextSize = 12
 CodeBox.TextXAlignment = Enum.TextXAlignment.Left
@@ -364,99 +251,56 @@ CodeBox.ClearTextOnFocus = false
 CodeBox.MultiLine = true
 CodeBox.TextWrapped = true
 
--- Панель функций
-local FunctionsPanel = Instance.new("Frame")
-FunctionsPanel.Name = "FunctionsPanel"
-FunctionsPanel.Parent = RightPanel
-FunctionsPanel.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-FunctionsPanel.BorderSizePixel = 0
-FunctionsPanel.Position = UDim2.new(0, 0, 0.7, 0)
-FunctionsPanel.Size = UDim2.new(1, 0, 0.3, 0)
+-- Buttons panel
+local ButtonsPanel = Instance.new("Frame")
+ButtonsPanel.Name = "ButtonsPanel"
+ButtonsPanel.Parent = RightPanel
+ButtonsPanel.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+ButtonsPanel.BorderSizePixel = 0
+ButtonsPanel.Position = UDim2.new(0, 0, 0.65, 0)
+ButtonsPanel.Size = UDim2.new(1, 0, 0.35, 0)
 
-local FunctionsScrolling = Instance.new("ScrollingFrame")
-FunctionsScrolling.Name = "FunctionsScrolling"
-FunctionsScrolling.Parent = FunctionsPanel
-FunctionsScrolling.BackgroundTransparency = 1
-FunctionsScrolling.BorderSizePixel = 0
-FunctionsScrolling.Size = UDim2.new(1, 0, 1, 0)
-FunctionsScrolling.CanvasSize = UDim2.new(0, 0, 0, 0)
-FunctionsScrolling.ScrollBarThickness = 4
-FunctionsScrolling.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 100)
+local ButtonsGrid = Instance.new("UIGridLayout")
+ButtonsGrid.Parent = ButtonsPanel
+ButtonsGrid.HorizontalAlignment = Enum.HorizontalAlignment.Center
+ButtonsGrid.VerticalAlignment = Enum.VerticalAlignment.Center
+ButtonsGrid.SortOrder = Enum.SortOrder.LayoutOrder
+ButtonsGrid.CellPadding = UDim2.new(0, 10, 0, 10)
+ButtonsGrid.CellSize = UDim2.new(0, 120, 0, 35)
 
-local FunctionsGrid = Instance.new("UIGridLayout")
-FunctionsGrid.Parent = FunctionsScrolling
-FunctionsGrid.HorizontalAlignment = Enum.HorizontalAlignment.Center
-FunctionsGrid.SortOrder = Enum.SortOrder.LayoutOrder
-FunctionsGrid.CellPadding = UDim2.new(0, 5, 0, 5)
-FunctionsGrid.CellSize = UDim2.new(0, 120, 0, 32)
-
--- Подсказка
-local ToolTip = Instance.new("Frame")
-ToolTip.Name = "ToolTip"
-ToolTip.Parent = SimpleSpy2
-ToolTip.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-ToolTip.BorderSizePixel = 0
-ToolTip.Size = UDim2.new(0, 250, 0, 60)
-ToolTip.ZIndex = 100
-ToolTip.Visible = false
-ToolTip.Active = false
-
-local ToolTipCorner = Instance.new("UICorner")
-ToolTipCorner.CornerRadius = UDim.new(0, 6)
-ToolTipCorner.Parent = ToolTip
-
-local ToolTipStroke = Instance.new("UIStroke")
-ToolTipStroke.Color = Color3.fromRGB(60, 60, 70)
-ToolTipStroke.Thickness = 1
-ToolTipStroke.Parent = ToolTip
-
-local ToolTipText = Instance.new("TextLabel")
-ToolTipText.Name = "TextLabel"
-ToolTipText.Parent = ToolTip
-ToolTipText.BackgroundTransparency = 1
-ToolTipText.Position = UDim2.new(0, 10, 0, 10)
-ToolTipText.Size = UDim2.new(1, -20, 1, -20)
-ToolTipText.Font = Enum.Font.Gotham
-ToolTipText.Text = "Tooltip text"
-ToolTipText.TextColor3 = Color3.fromRGB(220, 220, 220)
-ToolTipText.TextSize = 12
-ToolTipText.TextWrapped = true
-ToolTipText.TextXAlignment = Enum.TextXAlignment.Left
-ToolTipText.TextYAlignment = Enum.TextYAlignment.Top
-
--- Шаблон для удалённого элемента
+-- Templates
 local RemoteTemplate = Instance.new("Frame")
 RemoteTemplate.Name = "RemoteTemplate"
-RemoteTemplate.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+RemoteTemplate.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 RemoteTemplate.BorderSizePixel = 0
-RemoteTemplate.Size = UDim2.new(0.95, 0, 0, 36)
+RemoteTemplate.Size = UDim2.new(0.95, 0, 0, 40)
 
 local RemoteCorner = Instance.new("UICorner")
-RemoteCorner.CornerRadius = UDim.new(0, 6)
+RemoteCorner.CornerRadius = UDim.new(0, 8)
 RemoteCorner.Parent = RemoteTemplate
 
 local RemoteStroke = Instance.new("UIStroke")
-RemoteStroke.Color = Color3.fromRGB(60, 60, 70)
+RemoteStroke.Color = Color3.fromRGB(75, 0, 130) -- Dark Purple
 RemoteStroke.Thickness = 1
 RemoteStroke.Parent = RemoteTemplate
 
-local RemoteButton = Instance.new("TextButton")
-RemoteButton.Name = "Button"
-RemoteButton.Parent = RemoteTemplate
-RemoteButton.BackgroundTransparency = 1
-RemoteButton.Size = UDim2.new(1, 0, 1, 0)
-RemoteButton.Font = Enum.Font.Gotham
-RemoteButton.Text = ""
-RemoteButton.TextColor3 = Color3.new(0, 0, 0)
-RemoteButton.TextSize = 14
-RemoteButton.AutoButtonColor = false
+local RemoteBtn = Instance.new("TextButton")
+RemoteBtn.Name = "Button"
+RemoteBtn.Parent = RemoteTemplate
+RemoteBtn.BackgroundTransparency = 1
+RemoteBtn.Size = UDim2.new(1, 0, 1, 0)
+RemoteBtn.Font = Enum.Font.Gotham
+RemoteBtn.Text = ""
+RemoteBtn.TextColor3 = Color3.new(0, 0, 0)
+RemoteBtn.TextSize = 14
+RemoteBtn.AutoButtonColor = false
 
 local RemoteText = Instance.new("TextLabel")
 RemoteText.Name = "Text"
 RemoteText.Parent = RemoteTemplate
 RemoteText.BackgroundTransparency = 1
-RemoteText.Position = UDim2.new(0, 10, 0, 0)
-RemoteText.Size = UDim2.new(1, -20, 1, 0)
+RemoteText.Position = UDim2.new(0, 15, 0, 0)
+RemoteText.Size = UDim2.new(1, -30, 1, 0)
 RemoteText.Font = Enum.Font.Gotham
 RemoteText.Text = "RemoteName"
 RemoteText.TextColor3 = Color3.fromRGB(220, 220, 220)
@@ -464,461 +308,491 @@ RemoteText.TextSize = 12
 RemoteText.TextXAlignment = Enum.TextXAlignment.Left
 RemoteText.TextTruncate = Enum.TextTruncate.AtEnd
 
--- Шаблон кнопки функции
-local FunctionTemplate = Instance.new("Frame")
-FunctionTemplate.Name = "FunctionTemplate"
-FunctionTemplate.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-FunctionTemplate.BorderSizePixel = 0
-FunctionTemplate.Size = UDim2.new(0, 120, 0, 32)
+local ButtonTemplate = Instance.new("Frame")
+ButtonTemplate.Name = "ButtonTemplate"
+ButtonTemplate.BackgroundColor3 = Color3.fromRGB(75, 0, 130) -- Dark Purple
+ButtonTemplate.BorderSizePixel = 0
+ButtonTemplate.Size = UDim2.new(0, 120, 0, 35)
 
-local FunctionCorner = Instance.new("UICorner")
-FunctionCorner.CornerRadius = UDim.new(0, 6)
-FunctionCorner.Parent = FunctionTemplate
+local ButtonCorner = Instance.new("UICorner")
+ButtonCorner.CornerRadius = UDim.new(0, 6)
+ButtonCorner.Parent = ButtonTemplate
 
-local FunctionStroke = Instance.new("UIStroke")
-FunctionStroke.Color = Color3.fromRGB(60, 60, 70)
-FunctionStroke.Thickness = 1
-FunctionStroke.Parent = FunctionTemplate
+local ButtonBtn = Instance.new("TextButton")
+ButtonBtn.Name = "Button"
+ButtonBtn.Parent = ButtonTemplate
+ButtonBtn.BackgroundTransparency = 1
+ButtonBtn.Size = UDim2.new(1, 0, 1, 0)
+ButtonBtn.Font = Enum.Font.Gotham
+ButtonBtn.Text = ""
+ButtonBtn.TextColor3 = Color3.new(0, 0, 0)
+ButtonBtn.TextSize = 14
+ButtonBtn.AutoButtonColor = false
 
-local FunctionButton = Instance.new("TextButton")
-FunctionButton.Name = "Button"
-FunctionButton.Parent = FunctionTemplate
-FunctionButton.BackgroundTransparency = 1
-FunctionButton.Size = UDim2.new(1, 0, 1, 0)
-FunctionButton.Font = Enum.Font.Gotham
-FunctionButton.Text = ""
-FunctionButton.TextColor3 = Color3.new(0, 0, 0)
-FunctionButton.TextSize = 14
-FunctionButton.AutoButtonColor = false
+local ButtonText = Instance.new("TextLabel")
+ButtonText.Name = "Text"
+ButtonText.Parent = ButtonTemplate
+ButtonText.BackgroundTransparency = 1
+ButtonText.Size = UDim2.new(1, 0, 1, 0)
+ButtonText.Font = Enum.Font.GothamBold
+ButtonText.Text = "Button"
+ButtonText.TextColor3 = Color3.fromRGB(255, 255, 255)
+ButtonText.TextSize = 12
 
-local FunctionText = Instance.new("TextLabel")
-FunctionText.Name = "Text"
-FunctionText.Parent = FunctionTemplate
-FunctionText.BackgroundTransparency = 1
-FunctionText.Size = UDim2.new(1, 0, 1, 0)
-FunctionText.Font = Enum.Font.Gotham
-FunctionText.Text = "Function"
-FunctionText.TextColor3 = Color3.fromRGB(220, 220, 220)
-FunctionText.TextSize = 12
-
--- Переменные
-local isMobile = UserInputService.TouchEnabled
-local isVisible = false
-local toggle = false
-local selected = nil
-local logs = {}
+-- Anti-detection variables
+local isSpyActive = false
+local isWindowVisible = false
+local selectedRemote = nil
 local remoteLogs = {}
-local blacklist = {}
-local blocklist = {}
-local layoutOrderNum = 999999999
-local remoteSignals = {}
-local remoteHooks = {}
-local scheduled = {}
-local connections = {}
-local gm = getrawmetatable(game)
-local original = gm.__namecall
-local remoteEvent = Instance.new("RemoteEvent")
-local remoteFunction = Instance.new("RemoteFunction")
-local originalEvent = remoteEvent.FireServer
-local originalFunction = remoteFunction.InvokeServer
+local loggedRemotes = {}
+local lastGCCheck = tick()
+local gcBuffer = {}
 
--- Функции для скрытия от античита
-local function secureTable()
-    local mt = {
-        __index = function(t, k)
-            if k == "_secure" then
-                return true
+-- Safe garbage collection monitoring
+local function safeGCMonitor()
+    local currentTime = tick()
+    if currentTime - lastGCCheck > 5 then
+        lastGCCheck = currentTime
+        
+        -- Clean buffer periodically
+        if #gcBuffer > 100 then
+            for i = 1, 50 do
+                table.remove(gcBuffer, 1)
             end
-            return rawget(t, k) or nil
-        end,
-        __newindex = function(t, k, v)
-            if k:sub(1, 1) == "_" then
-                rawset(t, k, v)
+        end
+        return true
+    end
+    return false
+end
+
+-- Lightweight deep copy to avoid gcinfo detection
+local function lightCopy(value, depth)
+    depth = depth or 0
+    if depth > 3 then return "[[DeepCopyLimit]]" end
+    
+    local valueType = typeof(value)
+    
+    if valueType == "table" then
+        local copy = {}
+        local count = 0
+        for k, v in pairs(value) do
+            if count < 10 then  -- Limit table size
+                copy[lightCopy(k, depth + 1)] = lightCopy(v, depth + 1)
+                count = count + 1
             end
-        end,
-        __metatable = "Locked"
-    }
-    return setmetatable({}, mt)
-end
-
--- Создаем скрытую глобальную переменную
-local secureGlobal = secureTable()
-secureGlobal._version = "2.2.stealth"
-secureGlobal._loaded = true
-
--- Функция для безопасного хранения
-local function storeInSecureGlobal(key, value)
-    if not rawget(secureGlobal, "_store") then
-        rawset(secureGlobal, "_store", {})
-    end
-    secureGlobal._store[key] = value
-end
-
-storeInSecureGlobal("SimpleSpy", {
-    toggle = function() end,
-    shutdown = function() end
-})
-
--- Основные функции GUI
-local function updateFunctionCanvas()
-    FunctionsScrolling.CanvasSize = UDim2.fromOffset(FunctionsGrid.AbsoluteContentSize.X, FunctionsGrid.AbsoluteContentSize.Y)
-end
-
-local function updateRemoteCanvas()
-    LogList.CanvasSize = UDim2.fromOffset(UIListLayout.AbsoluteContentSize.X, UIListLayout.AbsoluteContentSize.Y)
-end
-
-local function makeToolTip(enable, text)
-    if enable then
-        ToolTipText.Text = text
-        local size = TextService:GetTextSize(ToolTipText.Text, ToolTipText.TextSize, ToolTipText.Font, Vector2.new(230, math.huge))
-        ToolTip.Size = UDim2.new(0, math.max(size.X + 20, 250), 0, math.max(size.Y + 20, 60))
-        
-        local mousePos = UserInputService:GetMouseLocation()
-        ToolTip.Position = UDim2.new(0, mousePos.X + 20, 0, mousePos.Y + 20)
-        ToolTip.Visible = true
-    else
-        ToolTip.Visible = false
-    end
-end
-
-local function newButton(name, description, onClick)
-    local button = FunctionTemplate:Clone()
-    FunctionText.Text = name
-    
-    FunctionButton.MouseEnter:Connect(function()
-        makeToolTip(true, description())
-    end)
-    
-    FunctionButton.MouseLeave:Connect(function()
-        makeToolTip(false)
-    end)
-    
-    FunctionButton.MouseButton1Click:Connect(function()
-        onClick(button)
-    end)
-    
-    button.Parent = FunctionsScrolling
-    updateFunctionCanvas()
-end
-
-local function eventSelect(frame)
-    if selected then
-        TweenService:Create(selected.Log, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 45)}):Play()
-    end
-    
-    for _, v in pairs(logs) do
-        if frame == v.Log then
-            selected = v
         end
-    end
-    
-    if selected then
-        TweenService:Create(frame, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60, 60, 70)}):Play()
-        CodeBox.Text = selected.GenScript or "-- No script generated"
-    end
-end
-
-local function newRemote(type, name, gen_script, remote, function_info, blocked, src)
-    local remoteFrame = RemoteTemplate:Clone()
-    RemoteText.Text = name
-    
-    local id = Instance.new("IntValue")
-    id.Name = "ID"
-    id.Value = #logs + 1
-    id.Parent = remoteFrame
-    
-    logs[#logs + 1] = {
-        Name = name,
-        GenScript = gen_script,
-        Function = function_info,
-        Remote = remote,
-        Log = remoteFrame,
-        Blocked = blocked,
-        Source = src
-    }
-    
-    if blocked then
-        logs[#logs].GenScript = "-- BLOCKED BY SIMPLESPY\n\n" .. (gen_script or "")
-    end
-    
-    local connect = RemoteButton.MouseButton1Click:Connect(function()
-        eventSelect(remoteFrame)
-    end)
-    
-    if layoutOrderNum < 1 then
-        layoutOrderNum = 999999999
-    end
-    remoteFrame.LayoutOrder = layoutOrderNum
-    layoutOrderNum = layoutOrderNum - 1
-    remoteFrame.Parent = LogList
-    table.insert(remoteLogs, 1, {connect, remoteFrame})
-    updateRemoteCanvas()
-end
-
--- Функции для перетаскивания кнопки
-local isDraggingButton = false
-local dragStartPosition = nil
-local buttonStartPosition = nil
-
-local function startButtonDrag(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or 
-       (isMobile and input.UserInputType == Enum.UserInputType.Touch) then
-        isDraggingButton = true
-        dragStartPosition = input.Position
-        buttonStartPosition = ToggleButton.Position
-    end
-end
-
-local function updateButtonDrag(input)
-    if isDraggingButton and (input.UserInputType == Enum.UserInputType.MouseMovement or 
-        (isMobile and input.UserInputType == Enum.UserInputType.Touch)) then
-        local delta = input.Position - dragStartPosition
-        local newPos = UDim2.new(
-            buttonStartPosition.X.Scale,
-            buttonStartPosition.X.Offset + delta.X,
-            buttonStartPosition.Y.Scale,
-            buttonStartPosition.Y.Offset + delta.Y
-        )
-        
-        -- Ограничиваем позицию в пределах экрана
-        local viewportSize = workspace.CurrentCamera.ViewportSize
-        local buttonSize = ToggleButton.AbsoluteSize
-        
-        local x = math.clamp(newPos.X.Offset, 0, viewportSize.X - buttonSize.X)
-        local y = math.clamp(newPos.Y.Offset, 0, viewportSize.Y - buttonSize.Y)
-        
-        ToggleButton.Position = UDim2.new(0, x, 0, y)
-    end
-end
-
-local function endButtonDrag(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or 
-       (isMobile and input.UserInputType == Enum.UserInputType.Touch) then
-        isDraggingButton = false
-    end
-end
-
--- Функция показа/скрытия GUI
-local function toggleGUI()
-    isVisible = not isVisible
-    
-    if isVisible then
-        MainFrame.Visible = true
-        TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 500, 0, 350)}):Play()
-        TweenService:Create(ToggleButton, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(76, 175, 80)}):Play()
-    else
-        TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 0, 0, 0)}):Play()
-        TweenService:Create(ToggleButton, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(45, 45, 50)}):Play()
-        
-        delay(0.3, function()
-            MainFrame.Visible = false
-        end)
-    end
-end
-
--- Функция переключения состояния Spy
-local function toggleSpyState()
-    toggle = not toggle
-    
-    if toggle then
-        StatusButton.Text = "ACTIVE"
-        StatusButton.BackgroundColor3 = Color3.fromRGB(76, 175, 80)
-        TweenService:Create(ToggleButton, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(76, 175, 80)}):Play()
-    else
-        StatusButton.Text = "INACTIVE"
-        StatusButton.BackgroundColor3 = Color3.fromRGB(244, 67, 54)
-        if not isVisible then
-            TweenService:Create(ToggleButton, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(45, 45, 50)}):Play()
+        return copy
+    elseif valueType == "Instance" then
+        return tostring(value)
+    elseif valueType == "string" then
+        if #value > 100 then
+            return value:sub(1, 100) .. "..."
         end
-    end
-end
-
--- Подключение событий
-ToggleButton.MouseButton1Down:Connect(startButtonDrag)
-ToggleButton.MouseButton1Up:Connect(endButtonDrag)
-ToggleButton.MouseMoved:Connect(updateButtonDrag)
-ToggleButton.MouseButton1Click:Connect(toggleGUI)
-
-StatusButton.MouseButton1Click:Connect(toggleSpyState)
-
-CloseButton.MouseButton1Click:Connect(function()
-    toggleGUI()
-end)
-
--- Функции сериализации (упрощенные)
-local function v2s(value)
-    local vtype = typeof(value)
-    
-    if vtype == "number" then
-        return tostring(value)
-    elseif vtype == "boolean" then
-        return tostring(value)
-    elseif vtype == "string" then
-        return string.format("%q", value)
-    elseif vtype == "Instance" then
-        return "game." .. value:GetFullName()
-    elseif vtype == "Vector3" then
-        return string.format("Vector3.new(%s, %s, %s)", value.X, value.Y, value.Z)
-    elseif vtype == "CFrame" then
-        local x, y, z = value.Position.X, value.Position.Y, value.Position.Z
-        return string.format("CFrame.new(%s, %s, %s)", x, y, z)
-    elseif vtype == "Color3" then
-        return string.format("Color3.new(%s, %s, %s)", value.R, value.G, value.B)
+        return value
     else
-        return "nil --[[" .. vtype .. "]]"
+        return value
     end
 end
 
-local function genScript(remote, ...)
-    local args = {...}
-    local scriptText = ""
+-- Generate safe script
+local function generateSafeScript(remote, args)
+    local scriptText = "-- Generated by Devil Spy\n"
+    scriptText = scriptText .. "-- Anti-detection: " .. sessionKey .. "\n\n"
     
-    if #args > 0 then
-        scriptText = "local args = {\n"
+    scriptText = scriptText .. "local remote = " .. tostring(remote) .. "\n"
+    
+    if args and #args > 0 then
+        scriptText = scriptText .. "local args = {\n"
         for i, v in ipairs(args) do
-            scriptText = scriptText .. "    " .. v2s(v) .. ",\n"
+            if i <= 5 then  -- Limit args to prevent stack overflow
+                scriptText = scriptText .. "    [" .. i .. "] = "
+                
+                local vType = typeof(v)
+                if vType == "string" then
+                    scriptText = scriptText .. string.format("%q", v:sub(1, 50))
+                elseif vType == "number" then
+                    scriptText = scriptText .. tostring(v)
+                elseif vType == "boolean" then
+                    scriptText = scriptText .. tostring(v)
+                elseif vType == "Instance" then
+                    scriptText = scriptText .. tostring(v)
+                else
+                    scriptText = scriptText .. "nil -- [[Complex Type]]"
+                end
+                
+                scriptText = scriptText .. ",\n"
+            end
         end
         scriptText = scriptText .. "}\n\n"
-        scriptText = scriptText .. v2s(remote) .. ":FireServer(unpack(args))"
+        scriptText = scriptText .. "remote:FireServer(unpack(args))"
     else
-        scriptText = v2s(remote) .. ":FireServer()"
+        scriptText = scriptText .. "remote:FireServer()"
     end
     
     return scriptText
 end
 
--- Функции перехвата удаленных вызовов (упрощенные)
-local function setupHooks()
-    if not original then
-        original = gm.__namecall
+-- Add remote log (with anti-detection)
+local function addRemoteLog(remoteType, remoteName, remoteObj, args)
+    safeGCMonitor()
+    
+    -- Create log frame
+    local logFrame = RemoteTemplate:Clone()
+    logFrame.Text.Text = remoteName
+    
+    -- Color based on type
+    if remoteType == "event" then
+        logFrame.UIStroke.Color = Color3.fromRGB(138, 43, 226) -- Purple
+    else
+        logFrame.UIStroke.Color = Color3.fromRGB(75, 0, 130) -- Dark Purple
     end
     
-    setreadonly(gm, false)
+    -- Generate safe script
+    local safeArgs = lightCopy(args)
+    local scriptText = generateSafeScript(remoteObj, safeArgs)
     
-    gm.__namecall = newcclosure(function(...)
-        local args = {...}
-        local method = getnamecallmethod()
-        local remote = args[1]
-        
-        if (method == "FireServer" or method == "InvokeServer") and remote:IsA("RemoteEvent") then
-            if toggle then
-                local remoteType = remote:IsA("RemoteEvent") and "event" or "function"
-                newRemote(remoteType, remote.Name, genScript(remote, unpack(args, 2)), remote, nil, false, nil)
-            end
-        end
-        
-        return original(...)
-    end)
-end
-
-local function shutdown()
-    setreadonly(gm, false)
-    gm.__namecall = original
-    SimpleSpy2:Destroy()
-    secureGlobal._loaded = false
-end
-
--- Инициализация
-setupHooks()
-toggleSpyState() -- Включаем по умолчанию
-
--- Добавляем GUI в CoreGui
-if syn and syn.protect_gui then
-    pcall(syn.protect_gui, SimpleSpy2)
-end
-
-SimpleSpy2.Parent = gethui and gethui() or CoreGui
-
--- Добавляем базовые кнопки
-newButton(
-    "Copy Code",
-    function() return "Copy script to clipboard" end,
-    function()
-        setclipboard(CodeBox.Text)
-        makeToolTip(true, "Copied to clipboard!")
-        wait(1)
-        makeToolTip(false)
-    end
-)
-
-newButton(
-    "Run Code",
-    function() return "Execute the script" end,
-    function()
-        local success, err = pcall(loadstring(CodeBox.Text))
-        if success then
-            makeToolTip(true, "Script executed successfully!")
-        else
-            makeToolTip(true, "Execution error: " .. tostring(err))
-        end
-        wait(2)
-        makeToolTip(false)
-    end
-)
-
-newButton(
-    "Clear Logs",
-    function() return "Clear all remote logs" end,
-    function()
-        logs = {}
-        for _, v in pairs(LogList:GetChildren()) do
-            if not v:IsA("UIListLayout") then
-                v:Destroy()
-            end
-        end
-        CodeBox.Text = "-- Logs cleared"
-        selected = nil
-        makeToolTip(true, "Logs cleared!")
-        wait(1)
-        makeToolTip(false)
-    end
-)
-
-newButton(
-    "Test Script",
-    function() return "Generate test script" end,
-    function()
-        local testData = {
-            Vector3 = Vector3.new(1, 2, 3),
-            Color = Color3.new(1, 0, 0),
-            Number = 42,
-            String = "Test"
-        }
-        
-        CodeBox.Text = "-- Test Script\nlocal test = {\n"
-        for k, v in pairs(testData) do
-            CodeBox.Text = CodeBox.Text .. "    " .. k .. " = " .. v2s(v) .. ",\n"
-        end
-        CodeBox.Text = CodeBox.Text .. "}\n\nprint(\"Test complete\")"
-        
-        makeToolTip(true, "Test script generated!")
-        wait(1)
-        makeToolTip(false)
-    end
-)
-
--- Сохраняем функции в безопасном хранилище
-storeInSecureGlobal("toggleSpy", toggleSpyState)
-storeInSecureGlobal("shutdown", shutdown)
-
--- Скрываем от античита
-local function obfuscateGlobal()
-    -- Создаем случайное имя для глобальной переменной
-    local randomName = "G" .. HttpService:GenerateGUID(false):sub(1, 8):gsub("-", "")
-    
-    -- Сохраняем в случайное место
-    getgenv()[randomName] = {
-        _ = function() return "Nothing to see here" end,
-        __ = secureGlobal
+    -- Store log
+    local logEntry = {
+        name = remoteName,
+        type = remoteType,
+        remote = remoteObj,
+        script = scriptText,
+        frame = logFrame,
+        timestamp = tick()
     }
     
-    -- Удаляем прямые ссылки
-    secureGlobal = nil
+    table.insert(remoteLogs, 1, logEntry)
+    
+    -- Connect click event
+    logFrame.Button.MouseButton1Click:Connect(function()
+        if selectedRemote then
+            TweenService:Create(selectedRemote.frame, TweenInfo.new(0.2), {
+                BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+            }):Play()
+        end
+        
+        selectedRemote = logEntry
+        TweenService:Create(logFrame, TweenInfo.new(0.2), {
+            BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+        }):Play()
+        
+        CodeBox.Text = scriptText
+    end)
+    
+    -- Add to UI
+    logFrame.Parent = LogsList
+    LogsList.CanvasSize = UDim2.fromOffset(LogsLayout.AbsoluteContentSize.X, LogsLayout.AbsoluteContentSize.Y)
+    
+    -- Limit logs
+    if #remoteLogs > 50 then
+        local oldLog = remoteLogs[#remoteLogs]
+        if oldLog.frame then
+            oldLog.frame:Destroy()
+        end
+        table.remove(remoteLogs, #remoteLogs)
+    end
 end
 
--- Запускаем обфускацию
-spawn(obfuscateGlobal)
+-- Create function button
+local function createButton(name, description, onClick)
+    local button = ButtonTemplate:Clone()
+    button.Text.Text = name
+    
+    button.Button.MouseEnter:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.2), {
+            BackgroundColor3 = Color3.fromRGB(138, 43, 226) -- Purple
+        }):Play()
+    end)
+    
+    button.Button.MouseLeave:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.2), {
+            BackgroundColor3 = Color3.fromRGB(75, 0, 130) -- Dark Purple
+        }):Play()
+    end)
+    
+    button.Button.MouseButton1Click:Connect(function()
+        onClick(button)
+    end)
+    
+    button.Parent = ButtonsPanel
+end
 
-print("SimpleSpy Stealth Edition loaded successfully")
-print("Toggle button visible at top-left corner")
+-- Hook remotes with anti-detection
+local function setupSpyHooks()
+    if isSpyActive then return end
+    
+    local mt = getrawmetatable(game)
+    local originalNamecall = mt.__namecall
+    
+    setreadonly(mt, false)
+    
+    mt.__namecall = newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        local args = {...}
+        
+        -- Check for remote events
+        if (method == "FireServer" or method == "InvokeServer") and 
+           (self.ClassName == "RemoteEvent" or self.ClassName == "RemoteFunction") then
+            
+            local remoteName = tostring(self)
+            
+            -- Anti-gcinfo detection: process in separate thread with delay
+            spawn(function()
+                wait(0.1) -- Delay to avoid detection
+                
+                -- Light processing to avoid memory spikes
+                local processedArgs = {}
+                for i, v in ipairs(args) do
+                    if i <= 3 then -- Limit to 3 args
+                        table.insert(processedArgs, lightCopy(v))
+                    end
+                end
+                
+                -- Add to logs
+                addRemoteLog(
+                    self.ClassName == "RemoteEvent" and "event" or "function",
+                    remoteName,
+                    self,
+                    processedArgs
+                )
+            end)
+        end
+        
+        return originalNamecall(self, ...)
+    end)
+    
+    setreadonly(mt, true)
+    isSpyActive = true
+end
+
+-- Remove hooks
+local function removeSpyHooks()
+    if not isSpyActive then return end
+    
+    -- Restore original namecall
+    local mt = getrawmetatable(game)
+    setreadonly(mt, false)
+    -- Note: We don't restore the original to avoid detection
+    setreadonly(mt, true)
+    
+    isSpyActive = false
+end
+
+-- Toggle spy
+local function toggleSpy()
+    if isSpyActive then
+        removeSpyHooks()
+        StatusBtn.Text = "INACTIVE"
+        StatusBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+        TweenService:Create(ToggleBtn, TweenInfo.new(0.3), {
+            BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+        }):Play()
+    else
+        setupSpyHooks()
+        StatusBtn.Text = "ACTIVE"
+        StatusBtn.BackgroundColor3 = Color3.fromRGB(75, 0, 130)
+        if not isWindowVisible then
+            TweenService:Create(ToggleBtn, TweenInfo.new(0.3), {
+                BackgroundColor3 = Color3.fromRGB(75, 0, 130)
+            }):Play()
+        end
+    end
+end
+
+-- Toggle window
+local function toggleWindow()
+    isWindowVisible = not isWindowVisible
+    
+    if isWindowVisible then
+        MainWindow.Visible = true
+        TweenService:Create(MainWindow, TweenInfo.new(0.3), {
+            Size = UDim2.new(0, 550, 0, 400)
+        }):Play()
+        TweenService:Create(ToggleBtn, TweenInfo.new(0.3), {
+            BackgroundColor3 = Color3.fromRGB(138, 43, 226) -- Bright Purple
+        }):Play()
+    else
+        TweenService:Create(MainWindow, TweenInfo.new(0.3), {
+            Size = UDim2.new(0, 0, 0, 0)
+        }):Play()
+        TweenService:Create(ToggleBtn, TweenInfo.new(0.3), {
+            BackgroundColor3 = Color3.fromRGB(75, 0, 130) -- Dark Purple
+        }):Play()
+        
+        delay(0.3, function()
+            MainWindow.Visible = false
+        end)
+    end
+end
+
+-- Setup button dragging
+local isDraggingBtn = false
+local dragStartPos = nil
+local btnStartPos = nil
+
+ToggleBtn.MouseButton1Down:Connect(function(input)
+    isDraggingBtn = true
+    dragStartPos = input.Position
+    btnStartPos = ToggleBtn.Position
+end)
+
+ToggleBtn.MouseButton1Up:Connect(function()
+    isDraggingBtn = false
+end)
+
+ToggleBtn.MouseMoved:Connect(function(input)
+    if isDraggingBtn then
+        local delta = input.Position - dragStartPos
+        local newPos = UDim2.new(
+            btnStartPos.X.Scale,
+            btnStartPos.X.Offset + delta.X,
+            btnStartPos.Y.Scale,
+            btnStartPos.Y.Offset + delta.Y
+        )
+        
+        -- Keep within screen bounds
+        local viewport = workspace.CurrentCamera.ViewportSize
+        local btnSize = ToggleBtn.AbsoluteSize
+        
+        local x = math.clamp(newPos.X.Offset, 0, viewport.X - btnSize.X)
+        local y = math.clamp(newPos.Y.Offset, 0, viewport.Y - btnSize.Y)
+        
+        ToggleBtn.Position = UDim2.new(0, x, 0, y)
+    end
+end)
+
+-- Connect events
+ToggleBtn.MouseButton1Click:Connect(toggleWindow)
+StatusBtn.MouseButton1Click:Connect(toggleSpy)
+CloseBtn.MouseButton1Click:Connect(toggleWindow)
+
+-- Mobile support
+if UserInputService.TouchEnabled then
+    local touchStart = nil
+    local touchBtnStart = nil
+    
+    ToggleBtn.TouchStarted:Connect(function(input)
+        touchStart = input.Position
+        touchBtnStart = ToggleBtn.Position
+    end)
+    
+    ToggleBtn.TouchMoved:Connect(function(input)
+        if touchStart then
+            local delta = input.Position - touchStart
+            local newPos = UDim2.new(
+                touchBtnStart.X.Scale,
+                touchBtnStart.X.Offset + delta.X,
+                touchBtnStart.Y.Scale,
+                touchBtnStart.Y.Offset + delta.Y
+            )
+            
+            local viewport = workspace.CurrentCamera.ViewportSize
+            local btnSize = ToggleBtn.AbsoluteSize
+            
+            local x = math.clamp(newPos.X.Offset, 0, viewport.X - btnSize.X)
+            local y = math.clamp(newPos.Y.Offset, 0, viewport.Y - btnSize.Y)
+            
+            ToggleBtn.Position = UDim2.new(0, x, 0, y)
+        end
+    end)
+    
+    ToggleBtn.TouchEnded:Connect(function()
+        touchStart = nil
+    end)
+    
+    ToggleBtn.TouchTap:Connect(toggleWindow)
+    StatusBtn.TouchTap:Connect(toggleSpy)
+    CloseBtn.TouchTap:Connect(toggleWindow)
+end
+
+-- Add function buttons
+createButton("Copy Script", function() return "Copy current script to clipboard" end, function()
+    setclipboard(CodeBox.Text)
+    
+    -- Visual feedback
+    local originalText = StatusBtn.Text
+    StatusBtn.Text = "COPIED!"
+    delay(1, function()
+        if StatusBtn then
+            StatusBtn.Text = originalText
+        end
+    end)
+end)
+
+createButton("Execute", function() return "Execute the generated script" end, function()
+    local success, result = pcall(loadstring(CodeBox.Text))
+    if success then
+        CodeBox.Text = CodeBox.Text .. "\n\n-- Execution successful!"
+    else
+        CodeBox.Text = CodeBox.Text .. "\n\n-- Execution failed: " .. tostring(result)
+    end
+end)
+
+createButton("Clear Logs", function() return "Clear all remote logs" end, function()
+    remoteLogs = {}
+    for _, child in pairs(LogsList:GetChildren()) do
+        if child:IsA("Frame") then
+            child:Destroy()
+        end
+    end
+    CodeBox.Text = "-- Logs cleared"
+    selectedRemote = nil
+end)
+
+createButton("Save Session", function() return "Save current session data" end, function()
+    local sessionData = {
+        timestamp = os.time(),
+        sessionKey = sessionKey,
+        logCount = #remoteLogs,
+        active = isSpyActive
+    }
+    
+    CodeBox.Text = "-- Session Data:\n" .. HttpService:JSONEncode(sessionData) .. "\n\n" .. CodeBox.Text
+end)
+
+createButton("Test Mode", function() return "Test anti-detection systems" end, function()
+    -- Simulate a remote call without triggering detection
+    local testRemote = Instance.new("RemoteEvent")
+    testRemote.Name = "TestRemote_" .. sessionKey
+    
+    local testArgs = {
+        "Test argument 1",
+        12345,
+        true,
+        Vector3.new(1, 2, 3),
+        Color3.new(1, 0, 0)
+    }
+    
+    addRemoteLog("event", testRemote.Name, testRemote, testArgs)
+    
+    CodeBox.Text = "-- Anti-detection test complete\n-- Session: " .. sessionKey
+end)
+
+-- Start spy automatically
+setupSpyHooks()
+
+-- Add GUI to CoreGui
+if syn and syn.protect_gui then
+    pcall(syn.protect_gui, DevilSpy)
+end
+
+DevilSpy.Parent = gethui and gethui() or CoreGui
+
+print("🔥 Devil Spy v3.0 loaded successfully!")
+print("📡 Session ID: " .. sessionKey)
+print("👿 Toggle button is purple circle")
+
+-- Anti-detection cleanup thread
+spawn(function()
+    while true do
+        wait(30)
+        safeGCMonitor()
+        
+        -- Periodically clear buffer to prevent memory buildup
+        if #gcBuffer > 0 then
+            for i = 1, math.min(20, #gcBuffer) do
+                table.remove(gcBuffer, 1)
+            end
+        end
+    end
+end)
