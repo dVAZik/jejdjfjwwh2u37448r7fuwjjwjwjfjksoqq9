@@ -146,6 +146,7 @@ SimpleSpy2.Name = spyName
 SimpleSpy2.ResetOnSpawn = false
 SimpleSpy2.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 SimpleSpy2.IgnoreGuiInset = true
+SimpleSpy2.Parent = CoreGui
 
 -- Скрытая кнопка для показа/скрытия (круглая, полупрозрачная)
 local ToggleButton = Instance.new("TextButton")
