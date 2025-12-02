@@ -163,7 +163,7 @@ ToggleButton.Font = Enum.Font.GothamBold
 ToggleButton.AutoButtonColor = true
 ToggleButton.Visible = true
 ToggleButton.Active = true
-ToggleButton.Draggabled = true
+ToggleButton.Draggable = true
 
 -- Эффект округления
 local UICorner = Instance.new("UICorner")
