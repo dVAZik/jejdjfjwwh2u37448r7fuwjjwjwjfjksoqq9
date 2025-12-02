@@ -666,44 +666,7 @@ ToggleBtn.MouseButton1Click:Connect(toggleWindow)
 StatusBtn.MouseButton1Click:Connect(toggleSpy)
 CloseBtn.MouseButton1Click:Connect(toggleWindow)
 
--- Mobile support
-if UserInputService.TouchEnabled then
-    local touchStart = nil
-    local touchBtnStart = nil
-    
-    ToggleBtn.TouchStarted:Connect(function(input)
-        touchStart = input.Position
-        touchBtnStart = ToggleBtn.Position
-    end)
-    
-    ToggleBtn.TouchMoved:Connect(function(input)
-        if touchStart then
-            local delta = input.Position - touchStart
-            local newPos = UDim2.new(
-                touchBtnStart.X.Scale,
-                touchBtnStart.X.Offset + delta.X,
-                touchBtnStart.Y.Scale,
-                touchBtnStart.Y.Offset + delta.Y
-            )
-            
-            local viewport = workspace.CurrentCamera.ViewportSize
-            local btnSize = ToggleBtn.AbsoluteSize
-            
-            local x = math.clamp(newPos.X.Offset, 0, viewport.X - btnSize.X)
-            local y = math.clamp(newPos.Y.Offset, 0, viewport.Y - btnSize.Y)
-            
-            ToggleBtn.Position = UDim2.new(0, x, 0, y)
-        end
-    end)
-    
-    ToggleBtn.TouchEnded:Connect(function()
-        touchStart = nil
-    end)
-    
-    ToggleBtn.TouchTap:Connect(toggleWindow)
-    StatusBtn.TouchTap:Connect(toggleSpy)
-    CloseBtn.TouchTap:Connect(toggleWindow)
-end
+
 
 -- Add function buttons
 createButton("Copy Script", function() return "Copy current script to clipboard" end, function()
