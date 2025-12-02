@@ -1,0 +1,1933 @@
+--[[
+    SimpleSpy v2.2 SOURCE (Enhanced)
+    Credits:
+        exx - basically everything
+        Frosty - GUI to Lua
+        Modified for enhanced serialization and mobile support
+]]
+
+-- shuts down the previous instance of SimpleSpy
+if _G.SimpleSpyExecuted and type(_G.SimpleSpyShutdown) == "function" then
+    _G.SimpleSpyShutdown()
+end
+
+local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+local Highlight = loadstring(game:HttpGet("https://github.com/exxtremestuffs/SimpleSpySource/raw/master/highlight.lua"))()
+
+---- МИНИМАЛИСТИЧНЫЙ GUI ----
+
+-- Instances:
+
+local SimpleSpy2 = Instance.new("ScreenGui")
+SimpleSpy2.Name = "SimpleSpy2"
+SimpleSpy2.ResetOnSpawn = false
+SimpleSpy2.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Главный контейнер (можно переносить на телефоне)
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = SimpleSpy2
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+MainFrame.BackgroundTransparency = 0.1
+MainFrame.BorderSizePixel = 0
+MainFrame.Position = UDim2.new(0, 500, 0, 200)
+MainFrame.Size = UDim2.new(0, 500, 0, 350)
+MainFrame.ClipsDescendants = true
+
+-- Эффект тени
+local Shadow = Instance.new("Frame")
+Shadow.Name = "Shadow"
+Shadow.Parent = MainFrame
+Shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Shadow.BackgroundTransparency = 0.8
+Shadow.BorderSizePixel = 0
+Shadow.Size = UDim2.new(1, 10, 1, 10)
+Shadow.Position = UDim2.new(0, -5, 0, -5)
+Shadow.ZIndex = -1
+
+-- Верхняя панель
+local TopBar = Instance.new("Frame")
+TopBar.Name = "TopBar"
+TopBar.Parent = MainFrame
+TopBar.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+TopBar.BorderSizePixel = 0
+TopBar.Size = UDim2.new(1, 0, 0, 40)
+
+-- Заголовок
+local Title = Instance.new("TextLabel")
+Title.Name = "Title"
+Title.Parent = TopBar
+Title.BackgroundTransparency = 1
+Title.Position = UDim2.new(0, 15, 0, 0)
+Title.Size = UDim2.new(0, 200, 1, 0)
+Title.Font = Enum.Font.GothamMedium
+Title.Text = "SIMPLE SPY"
+Title.TextColor3 = Color3.fromRGB(220, 220, 220)
+Title.TextSize = 18
+Title.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Кнопка переключения
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Name = "ToggleButton"
+ToggleButton.Parent = TopBar
+ToggleButton.BackgroundTransparency = 1
+ToggleButton.Position = UDim2.new(1, -180, 0, 0)
+ToggleButton.Size = UDim2.new(0, 100, 1, 0)
+ToggleButton.Font = Enum.Font.Gotham
+ToggleButton.Text = "ENABLED"
+ToggleButton.TextColor3 = Color3.fromRGB(76, 175, 80)
+ToggleButton.TextSize = 14
+ToggleButton.AutoButtonColor = false
+
+-- Кнопка закрытия
+local CloseButton = Instance.new("TextButton")
+CloseButton.Name = "CloseButton"
+CloseButton.Parent = TopBar
+CloseButton.BackgroundTransparency = 1
+CloseButton.Position = UDim2.new(1, -40, 0, 0)
+CloseButton.Size = UDim2.new(0, 40, 1, 0)
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.Text = "×"
+CloseButton.TextColor3 = Color3.fromRGB(220, 220, 220)
+CloseButton.TextSize = 24
+
+-- Основное содержимое
+local Content = Instance.new("Frame")
+Content.Name = "Content"
+Content.Parent = MainFrame
+Content.BackgroundTransparency = 1
+Content.Position = UDim2.new(0, 0, 0, 40)
+Content.Size = UDim2.new(1, 0, 1, -40)
+
+-- Левая панель (логи)
+local LeftPanel = Instance.new("Frame")
+LeftPanel.Name = "LeftPanel"
+LeftPanel.Parent = Content
+LeftPanel.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+LeftPanel.BorderSizePixel = 0
+LeftPanel.Size = UDim2.new(0, 200, 1, 0)
+
+-- Заголовок логов
+local LogsTitle = Instance.new("TextLabel")
+LogsTitle.Name = "LogsTitle"
+LogsTitle.Parent = LeftPanel
+LogsTitle.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+LogsTitle.BorderSizePixel = 0
+LogsTitle.Size = UDim2.new(1, 0, 0, 30)
+LogsTitle.Font = Enum.Font.Gotham
+LogsTitle.Text = "REMOTE LOGS"
+LogsTitle.TextColor3 = Color3.fromRGB(180, 180, 180)
+LogsTitle.TextSize = 14
+
+-- Список логов
+local LogList = Instance.new("ScrollingFrame")
+LogList.Name = "LogList"
+LogList.Parent = LeftPanel
+LogList.BackgroundTransparency = 1
+LogList.BorderSizePixel = 0
+LogList.Position = UDim2.new(0, 0, 0, 30)
+LogList.Size = UDim2.new(1, 0, 1, -30)
+LogList.CanvasSize = UDim2.new(0, 0, 0, 0)
+LogList.ScrollBarThickness = 4
+LogList.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 100)
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Parent = LogList
+UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 2)
+
+-- Шаблон для удалённого элемента
+local RemoteTemplate = Instance.new("Frame")
+RemoteTemplate.Name = "RemoteTemplate"
+RemoteTemplate.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+RemoteTemplate.BorderSizePixel = 0
+RemoteTemplate.Size = UDim2.new(0.95, 0, 0, 36)
+
+local RemoteButton = Instance.new("TextButton")
+RemoteButton.Name = "Button"
+RemoteButton.Parent = RemoteTemplate
+RemoteButton.BackgroundTransparency = 1
+RemoteButton.Size = UDim2.new(1, 0, 1, 0)
+RemoteButton.Font = Enum.Font.Gotham
+RemoteButton.Text = ""
+RemoteButton.TextColor3 = Color3.new(0, 0, 0)
+RemoteButton.TextSize = 14
+RemoteButton.AutoButtonColor = false
+
+local RemoteText = Instance.new("TextLabel")
+RemoteText.Name = "Text"
+RemoteText.Parent = RemoteTemplate
+RemoteText.BackgroundTransparency = 1
+RemoteText.Position = UDim2.new(0, 10, 0, 0)
+RemoteText.Size = UDim2.new(1, -20, 1, 0)
+RemoteText.Font = Enum.Font.Gotham
+RemoteText.Text = "RemoteName"
+RemoteText.TextColor3 = Color3.fromRGB(220, 220, 220)
+RemoteText.TextSize = 12
+RemoteText.TextXAlignment = Enum.TextXAlignment.Left
+RemoteText.TextTruncate = Enum.TextTruncate.AtEnd
+
+local RemoteType = Instance.new("Frame")
+RemoteType.Name = "TypeIndicator"
+RemoteType.Parent = RemoteTemplate
+RemoteType.BackgroundColor3 = Color3.fromRGB(76, 175, 80)
+RemoteType.BorderSizePixel = 0
+RemoteType.Position = UDim2.new(0, 5, 0.5, -3)
+RemoteType.Size = UDim2.new(0, 6, 0, 6)
+RemoteType.AnchorPoint = Vector2.new(0, 0.5)
+
+-- Правая панель
+local RightPanel = Instance.new("Frame")
+RightPanel.Name = "RightPanel"
+RightPanel.Parent = Content
+RightPanel.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+RightPanel.BorderSizePixel = 0
+RightPanel.Position = UDim2.new(0, 200, 0, 0)
+RightPanel.Size = UDim2.new(1, -200, 1, 0)
+
+-- Кодовая панель
+local CodeBox = Instance.new("Frame")
+CodeBox.Name = "CodeBox"
+CodeBox.Parent = RightPanel
+CodeBox.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+CodeBox.BorderSizePixel = 0
+CodeBox.Size = UDim2.new(1, 0, 0.65, 0)
+
+-- Панель функций
+local FunctionsPanel = Instance.new("Frame")
+FunctionsPanel.Name = "FunctionsPanel"
+FunctionsPanel.Parent = RightPanel
+FunctionsPanel.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+FunctionsPanel.BorderSizePixel = 0
+FunctionsPanel.Position = UDim2.new(0, 0, 0.65, 0)
+FunctionsPanel.Size = UDim2.new(1, 0, 0.35, 0)
+
+local FunctionsScrolling = Instance.new("ScrollingFrame")
+FunctionsScrolling.Name = "FunctionsScrolling"
+FunctionsScrolling.Parent = FunctionsPanel
+FunctionsScrolling.BackgroundTransparency = 1
+FunctionsScrolling.BorderSizePixel = 0
+FunctionsScrolling.Size = UDim2.new(1, 0, 1, 0)
+FunctionsScrolling.CanvasSize = UDim2.new(0, 0, 0, 0)
+FunctionsScrolling.ScrollBarThickness = 4
+FunctionsScrolling.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 100)
+
+local FunctionsGrid = Instance.new("UIGridLayout")
+FunctionsGrid.Parent = FunctionsScrolling
+FunctionsGrid.HorizontalAlignment = Enum.HorizontalAlignment.Center
+FunctionsGrid.SortOrder = Enum.SortOrder.LayoutOrder
+FunctionsGrid.CellPadding = UDim2.new(0, 5, 0, 5)
+FunctionsGrid.CellSize = UDim2.new(0, 120, 0, 32)
+
+-- Шаблон кнопки функции
+local FunctionTemplate = Instance.new("Frame")
+FunctionTemplate.Name = "FunctionTemplate"
+FunctionTemplate.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+FunctionTemplate.BorderSizePixel = 0
+FunctionTemplate.Size = UDim2.new(0, 120, 0, 32)
+
+local FunctionButton = Instance.new("TextButton")
+FunctionButton.Name = "Button"
+FunctionButton.Parent = FunctionTemplate
+FunctionButton.BackgroundTransparency = 1
+FunctionButton.Size = UDim2.new(1, 0, 1, 0)
+FunctionButton.Font = Enum.Font.Gotham
+FunctionButton.Text = ""
+FunctionButton.TextColor3 = Color3.new(0, 0, 0)
+FunctionButton.TextSize = 14
+FunctionButton.AutoButtonColor = false
+
+local FunctionText = Instance.new("TextLabel")
+FunctionText.Name = "Text"
+FunctionText.Parent = FunctionTemplate
+FunctionText.BackgroundTransparency = 1
+FunctionText.Size = UDim2.new(1, 0, 1, 0)
+FunctionText.Font = Enum.Font.Gotham
+FunctionText.Text = "Function"
+FunctionText.TextColor3 = Color3.fromRGB(220, 220, 220)
+FunctionText.TextSize = 12
+
+-- Подсказка
+local ToolTip = Instance.new("Frame")
+ToolTip.Name = "ToolTip"
+ToolTip.Parent = SimpleSpy2
+ToolTip.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+ToolTip.BorderSizePixel = 0
+ToolTip.Size = UDim2.new(0, 250, 0, 60)
+ToolTip.ZIndex = 100
+ToolTip.Visible = false
+
+local ToolTipText = Instance.new("TextLabel")
+ToolTipText.Name = "TextLabel"
+ToolTipText.Parent = ToolTip
+ToolTipText.BackgroundTransparency = 1
+ToolTipText.Position = UDim2.new(0, 10, 0, 10)
+ToolTipText.Size = UDim2.new(1, -20, 1, -20)
+ToolTipText.Font = Enum.Font.Gotham
+ToolTipText.Text = "Tooltip text"
+ToolTipText.TextColor3 = Color3.fromRGB(220, 220, 220)
+ToolTipText.TextSize = 12
+ToolTipText.TextWrapped = true
+ToolTipText.TextXAlignment = Enum.TextXAlignment.Left
+ToolTipText.TextYAlignment = Enum.TextYAlignment.Top
+
+-------------------------------------------------------------------------------
+-- init
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local ContentProvider = game:GetService("ContentProvider")
+local TextService = game:GetService("TextService")
+local Mouse = game:GetService("Players").LocalPlayer:GetMouse()
+
+-- Поддержка мобильных устройств
+local isMobile = UserInputService.TouchEnabled
+local isDragging = false
+local dragStartPosition = nil
+local frameStartPosition = nil
+
+-- Переменные для перетаскивания на мобильных устройствах
+local function startMobileDrag(input)
+    if isMobile and input.UserInputType == Enum.UserInputType.Touch then
+        local touchPos = input.Position
+        local framePos = MainFrame.AbsolutePosition
+        local frameSize = MainFrame.AbsoluteSize
+        
+        -- Проверяем, что касание в пределах MainFrame
+        if touchPos.X >= framePos.X and touchPos.X <= framePos.X + frameSize.X and
+           touchPos.Y >= framePos.Y and touchPos.Y <= framePos.Y + frameSize.Y then
+            isDragging = true
+            dragStartPosition = touchPos
+            frameStartPosition = framePos
+        end
+    end
+end
+
+local function updateMobileDrag(input)
+    if isMobile and isDragging and input.UserInputType == Enum.UserInputType.Touch then
+        local delta = input.Position - dragStartPosition
+        local newPos = frameStartPosition + delta
+        
+        -- Ограничиваем позицию в пределах экрана
+        local viewportSize = workspace.CurrentCamera.ViewportSize
+        local frameSize = MainFrame.AbsoluteSize
+        
+        newPos = Vector2.new(
+            math.clamp(newPos.X, 0, viewportSize.X - frameSize.X),
+            math.clamp(newPos.Y, 0, viewportSize.Y - frameSize.Y)
+        )
+        
+        MainFrame.Position = UDim2.new(0, newPos.X, 0, newPos.Y)
+    end
+end
+
+local function endMobileDrag(input)
+    if isMobile and input.UserInputType == Enum.UserInputType.Touch then
+        isDragging = false
+        dragStartPosition = nil
+        frameStartPosition = nil
+    end
+end
+
+-- Добавляем обработчики для мобильных устройств
+if isMobile then
+    UserInputService.TouchStarted:Connect(startMobileDrag)
+    UserInputService.TouchMoved:Connect(updateMobileDrag)
+    UserInputService.TouchEnded:Connect(endMobileDrag)
+end
+
+local selectedColor = Color3.new(0.321569, 0.333333, 1)
+local deselectedColor = Color3.new(0.8, 0.8, 0.8)
+--- So things are descending
+local layoutOrderNum = 999999999
+--- Whether or not the gui is closing
+local mainClosing = false
+--- Whether or not the gui is closed (defaults to false)
+local closed = false
+--- Whether or not the sidebar is closing
+local sideClosing = false
+--- Whether or not the sidebar is closed (defaults to true but opens automatically on remote selection)
+local sideClosed = false
+--- Whether or not the code box is maximized (defaults to false)
+local maximized = false
+--- The event logs to be read from
+local logs = {}
+--- The event currently selected.Log (defaults to nil)
+local selected = nil
+--- The blacklist (can be a string name or the Remote Instance)
+local blacklist = {}
+--- The block list (can be a string name or the Remote Instance)
+local blocklist = {}
+--- Whether or not to add getNil function
+local getNil = false
+--- Array of remotes (and original functions) connected to
+local connectedRemotes = {}
+--- True = hookfunction, false = namecall
+local toggle = false
+local gm = getrawmetatable(game)
+local original = gm.__namecall
+setreadonly(gm, false)
+--- used to prevent recursives
+local prevTables = {}
+--- holds logs (for deletion)
+local remoteLogs = {}
+--- used for hookfunction
+local remoteEvent = Instance.new("RemoteEvent")
+--- used for hookfunction
+local remoteFunction = Instance.new("RemoteFunction")
+local originalEvent = remoteEvent.FireServer
+local originalFunction = remoteFunction.InvokeServer
+--- the maximum amount of remotes allowed in logs
+_G.SIMPLESPYCONFIG_MaxRemotes = 500
+--- how many spaces to indent
+local indent = 4
+--- used for task scheduler
+local scheduled = {}
+--- RBXScriptConnect of the task scheduler
+local schedulerconnect
+local SimpleSpy = {}
+local topstr = ""
+local bottomstr = ""
+local remotesFadeIn
+local rightFadeIn
+local codebox
+local p
+local getnilrequired = false
+
+-- autoblock variables
+local autoblock = false
+local history = {}
+local excluding = {}
+
+-- function info variables
+local funcEnabled = true
+
+-- remote hooking/connecting api variables
+local remoteSignals = {}
+local remoteHooks = {}
+
+-- original mouse icon
+local oldIcon = Mouse.Icon
+
+-- if mouse inside gui
+local mouseInGui = false
+
+-- handy array of RBXScriptConnections to disconnect on shutdown
+local connections = {}
+
+-- whether or not SimpleSpy uses 'getcallingscript()' to get the script (default is false because detection)
+local useGetCallingScript = false
+
+-- functions
+
+--- Converts arguments to a string and generates code that calls the specified method with them, recommended to be used in conjunction with ValueToString (method must be a string, e.g. `game:GetService("ReplicatedStorage").Remote:FireServer`)
+--- @param method string
+--- @param args any[]
+--- @return string
+function SimpleSpy:ArgsToString(method, args)
+    assert(typeof(method) == "string", "string expected, got " .. typeof(method))
+    assert(typeof(args) == "table", "table expected, got " .. typeof(args))
+    return v2v({args = args}) .. "\n\n" .. method .. "(unpack(args))"
+end
+
+--- Converts a value to variables with the specified index as the variable name (if nil/invalid then the name will be assigned automatically)
+--- @param t any[]
+--- @return string
+function SimpleSpy:TableToVars(t)
+    assert(typeof(t) == "table", "table expected, got " .. typeof(t))
+    return v2v(t)
+end
+
+--- Converts a value to a variable with the specified `variablename` (if nil/invalid then the name will be assigned automatically)
+--- @param value any
+--- @return string
+function SimpleSpy:ValueToVar(value, variablename)
+    assert(variablename == nil or typeof(variablename) == "string", "string expected, got " .. typeof(variablename))
+    if not variablename then
+        variablename = 1
+    end
+    return v2v({[variablename] = value})
+end
+
+--- Converts any value to a string, cannot preserve function contents
+--- @param value any
+--- @return string
+function SimpleSpy:ValueToString(value)
+    return v2s(value)
+end
+
+--- Generates the simplespy function info
+--- @param func function
+--- @return string
+function SimpleSpy:GetFunctionInfo(func)
+    assert(typeof(func) == "function", "Instance expected, got " .. typeof(func))
+    return v2v{functionInfo = {
+        info = debug.getinfo(func),
+        constants = debug.getconstants(func)
+    }}
+end
+
+--- Gets the ScriptSignal for a specified remote being fired
+--- @param remote Instance
+function SimpleSpy:GetRemoteFiredSignal(remote)
+    assert(typeof(remote) == "Instance", "Instance expected, got " .. typeof(remote))
+    if not remoteSignals[remote] then
+        remoteSignals[remote] = newSignal()
+    end
+    return remoteSignals[remote]
+end
+
+--- Allows for direct hooking of remotes **THIS CAN BE VERY DANGEROUS**
+--- @param remote Instance
+--- @param f function
+function SimpleSpy:HookRemote(remote, f)
+    assert(typeof(remote) == "Instance", "Instance expected, got " .. typeof(remote))
+    assert(typeof(f) == "function", "function expected, got " .. typeof(f))
+    remoteHooks[remote] = f
+end
+
+--- Blocks the specified remote instance/string
+--- @param remote any
+function SimpleSpy:BlockRemote(remote)
+    assert(typeof(remote) == "Instance" or typeof(remote) == "string", "Instance | string expected, got " .. typeof(remote))
+    blocklist[remote] = true
+end
+
+--- Excludes the specified remote from logs (instance/string)
+--- @param remote any
+function SimpleSpy:ExcludeRemote(remote)
+    assert(typeof(remote) == "Instance" or typeof(remote) == "string", "Instance | string expected, got " .. typeof(remote))
+    blacklist[remote] = true
+end
+
+--- Creates a new ScriptSignal that can be connected to and fired
+--- @return table
+function newSignal()
+    local connected = {}
+    return {
+        Connect = function(self, f)
+            assert(connected, "Signal is closed")
+            connected[tostring(f)] = f
+            return setmetatable({
+                Connected = true,
+                Disconnect = function(self)
+                    if not connected then
+                        warn("Signal is already closed")
+                    end
+                    self.Connected = false
+                    connected[tostring(f)] = nil
+                end
+            },
+            {
+                __index = function(self, i)
+                    if i == "Connected" then
+                        return not not connected[tostring(f)]
+                    end
+                end
+            })
+        end,
+        Fire = function(self, ...)
+            for _, f in pairs(connected) do
+                coroutine.wrap(f)(...)
+            end
+        end
+    }
+end
+
+--- Prevents remote spam from causing lag (clears logs after `_G.SIMPLESPYCONFIG_MaxRemotes` or 500 remotes)
+function clean()
+    local max = _G.SIMPLESPYCONFIG_MaxRemotes
+    if not typeof(max) == "number" and math.floor(max) ~= max then
+        max = 500
+    end
+    if #remoteLogs > max then
+        for i = 100, #remoteLogs do
+            local v = remoteLogs[i]
+            if typeof(v[1]) == "RBXScriptConnection" then
+                v[1]:Disconnect()
+            end
+            if typeof(v[2]) == "Instance" then
+                v[2]:Destroy()
+            end
+        end
+        local newLogs = {}
+        for i = 1, 100 do
+            table.insert(newLogs, remoteLogs[i])
+        end
+        remoteLogs = newLogs
+    end
+end
+
+--- Scales the ToolTip to fit containing text
+function scaleToolTip()
+    local size = TextService:GetTextSize(ToolTipText.Text, ToolTipText.TextSize, ToolTipText.Font, Vector2.new(230, math.huge))
+    ToolTipText.Size = UDim2.new(0, size.X, 0, size.Y)
+    ToolTip.Size = UDim2.new(0, math.max(size.X + 20, 250), 0, math.max(size.Y + 20, 60))
+end
+
+--- Executed when the toggle button (the SimpleSpy logo) is hovered over
+function onToggleButtonHover()
+    if not toggle then
+        TweenService:Create(ToggleButton, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(244, 67, 54)}):Play()
+    else
+        TweenService:Create(ToggleButton, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(76, 175, 80)}):Play()
+    end
+end
+
+--- Executed when the toggle button is unhovered over
+function onToggleButtonUnhover()
+    TweenService:Create(ToggleButton, TweenInfo.new(0.3), {TextColor3 = toggle and Color3.fromRGB(76, 175, 80) or Color3.fromRGB(244, 67, 54)}):Play()
+end
+
+--- Executed when the X button is hovered over
+function onXButtonHover()
+    TweenService:Create(CloseButton, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(244, 67, 54)}):Play()
+end
+
+--- Executed when the X button is unhovered over
+function onXButtonUnhover()
+    TweenService:Create(CloseButton, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(220, 220, 220)}):Play()
+end
+
+--- Toggles the remote spy method (when button clicked)
+function onToggleButtonClick()
+    toggleSpyMethod()
+    if toggle then
+        ToggleButton.Text = "ENABLED"
+        TweenService:Create(ToggleButton, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(76, 175, 80)}):Play()
+    else
+        ToggleButton.Text = "DISABLED"
+        TweenService:Create(ToggleButton, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(244, 67, 54)}):Play()
+    end
+end
+
+--- Brings gui back if it gets lost offscreen
+function bringBackOnResize()
+    local currentX = MainFrame.AbsolutePosition.X
+    local currentY = MainFrame.AbsolutePosition.Y
+    local viewportSize = workspace.CurrentCamera.ViewportSize
+    local frameSize = MainFrame.AbsoluteSize
+    
+    if currentX < 0 then
+        currentX = 0
+    elseif currentX > (viewportSize.X - frameSize.X) then
+        currentX = viewportSize.X - frameSize.X
+    end
+    
+    if currentY < 0 then
+        currentY = 0
+    elseif currentY > (viewportSize.Y - frameSize.Y) then
+        currentY = viewportSize.Y - frameSize.Y
+    end
+    
+    TweenService:Create(MainFrame, TweenInfo.new(0.1), {Position = UDim2.new(0, currentX, 0, currentY)}):Play()
+end
+
+--- Fades out the table of elements (and makes them invisible), returns a function to make them visible again
+function fadeOut(elements)
+    local data = {}
+    for _, v in pairs(elements) do
+        if typeof(v) == "Instance" and v:IsA("GuiObject") and v.Visible then
+            coroutine.wrap(function()
+                data[v] = {
+                    BackgroundTransparency = v.BackgroundTransparency
+                }
+                TweenService:Create(v, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
+                if v:IsA("TextBox") or v:IsA("TextButton") or v:IsA("TextLabel") then
+                    data[v].TextTransparency = v.TextTransparency
+                    TweenService:Create(v, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
+                elseif v:IsA("ImageButton") or v:IsA("ImageLabel") then
+                    data[v].ImageTransparency = v.ImageTransparency
+                    TweenService:Create(v, TweenInfo.new(0.3), {ImageTransparency = 1}):Play()
+                end
+                wait(0.3)
+                v.Visible = false
+                for i, x in pairs(data[v]) do
+                    v[i] = x
+                end
+                data[v] = true
+            end)()
+        end
+    end
+    return function()
+        for i, _ in pairs(data) do
+            coroutine.wrap(function()
+                local properties = {
+                    BackgroundTransparency = i.BackgroundTransparency
+                }
+                i.BackgroundTransparency = 1
+                TweenService:Create(i, TweenInfo.new(0.3), {BackgroundTransparency = properties.BackgroundTransparency}):Play()
+                if i:IsA("TextBox") or i:IsA("TextButton") or i:IsA("TextLabel") then
+                    properties.TextTransparency = i.TextTransparency
+                    i.TextTransparency = 1
+                    TweenService:Create(i, TweenInfo.new(0.3), {TextTransparency = properties.TextTransparency}):Play()
+                elseif i:IsA("ImageButton") or i:IsA("ImageLabel") then
+                    properties.ImageTransparency = i.ImageTransparency
+                    i.ImageTransparency = 1
+                    TweenService:Create(i, TweenInfo.new(0.3), {ImageTransparency = properties.ImageTransparency}):Play()
+                end
+                i.Visible = true
+            end)()
+        end
+    end
+end
+
+--- Updates the canvas size to fit the current amount of function buttons
+function updateFunctionCanvas()
+    FunctionsScrolling.CanvasSize = UDim2.fromOffset(FunctionsGrid.AbsoluteContentSize.X, FunctionsGrid.AbsoluteContentSize.Y)
+end
+
+--- Updates the canvas size to fit the amount of current remotes
+function updateRemoteCanvas()
+    LogList.CanvasSize = UDim2.fromOffset(UIListLayout.AbsoluteContentSize.X, UIListLayout.AbsoluteContentSize.Y)
+end
+
+--- Allows for toggling of the tooltip and easy setting of le description
+--- @param enable boolean
+--- @param text string
+function makeToolTip(enable, text)
+    if enable then
+        if ToolTip.Visible then
+            ToolTip.Visible = false
+            RunService:UnbindFromRenderStep("ToolTip")
+        end
+        local first = true
+        RunService:BindToRenderStep("ToolTip", 1, function()
+            local topLeft = Vector2.new(Mouse.X + 20, Mouse.Y + 20)
+            local bottomRight = topLeft + ToolTip.AbsoluteSize
+            if topLeft.X < 0 then
+                topLeft = Vector2.new(0, topLeft.Y)
+            elseif bottomRight.X > workspace.CurrentCamera.ViewportSize.X then
+                topLeft = Vector2.new(workspace.CurrentCamera.ViewportSize.X - ToolTip.AbsoluteSize.X, topLeft.Y)
+            end
+            if topLeft.Y < 0 then
+                topLeft = Vector2.new(topLeft.X, 0)
+            elseif bottomRight.Y > workspace.CurrentCamera.ViewportSize.Y - 35 then
+                topLeft = Vector2.new(topLeft.X, workspace.CurrentCamera.ViewportSize.Y - ToolTip.AbsoluteSize.Y - 35)
+            end
+            if topLeft.X <= Mouse.X and topLeft.Y <= Mouse.Y then
+                topLeft = Vector2.new(Mouse.X - ToolTip.AbsoluteSize.X - 2, Mouse.Y - ToolTip.AbsoluteSize.Y - 2)
+            end
+            if first then
+                ToolTip.Position = UDim2.fromOffset(topLeft.X, topLeft.Y)
+                first = false
+            else
+                ToolTip:TweenPosition(UDim2.fromOffset(topLeft.X, topLeft.Y), "Out", "Linear", 0.1)
+            end
+        end)
+        ToolTipText.Text = text
+        ToolTip.Visible = true
+    else
+        if ToolTip.Visible then
+            ToolTip.Visible = false
+            RunService:UnbindFromRenderStep("ToolTip")
+        end
+    end
+end
+
+--- Creates new function button (below codebox)
+--- @param name string
+---@param description function
+---@param onClick function
+function newButton(name, description, onClick)
+    local button = FunctionTemplate:Clone()
+    button.Text.Text = name
+    button.Button.MouseEnter:Connect(function()
+        makeToolTip(true, description())
+    end)
+    button.Button.MouseLeave:Connect(function()
+        makeToolTip(false)
+    end)
+    button.AncestryChanged:Connect(function()
+        makeToolTip(false)
+    end)
+    button.Button.MouseButton1Click:Connect(function(...)
+        onClick(button, ...)
+    end)
+    button.Parent = FunctionsScrolling
+    updateFunctionCanvas()
+end
+
+--- Adds new Remote to logs
+--- @param type string The type of the remote being logged (either 'function' or 'event')
+--- @param name string The name of the remote being logged
+--- @param gen_script any
+--- @param remote any
+--- @param function_info string
+--- @param blocked any
+function newRemote(type, name, gen_script, remote, function_info, blocked, src)
+    local remoteFrame = RemoteTemplate:Clone()
+    remoteFrame.Text.Text = name
+    remoteFrame.TypeIndicator.BackgroundColor3 = type == "event" and Color3.fromRGB(255, 193, 7) or Color3.fromRGB(33, 150, 243)
+    
+    local id = Instance.new("IntValue")
+    id.Name = "ID"
+    id.Value = #logs + 1
+    id.Parent = remoteFrame
+    
+    logs[#logs + 1] = {
+        Name = name,
+        GenScript = gen_script,
+        Function = function_info,
+        Remote = remote,
+        Log = remoteFrame,
+        Blocked = blocked,
+        Source = src
+    }
+    
+    if blocked then
+        logs[#logs].GenScript = "-- THIS REMOTE WAS PREVENTED FROM FIRING THE SERVER BY SIMPLESPY\n\n" .. logs[#logs].GenScript
+    end
+    
+    local connect = remoteFrame.Button.MouseButton1Click:Connect(function()
+        eventSelect(remoteFrame)
+    end)
+    
+    if layoutOrderNum < 1 then
+        layoutOrderNum = 999999999
+    end
+    remoteFrame.LayoutOrder = layoutOrderNum
+    layoutOrderNum = layoutOrderNum - 1
+    remoteFrame.Parent = LogList
+    table.insert(remoteLogs, 1, {connect, remoteFrame})
+    clean()
+    updateRemoteCanvas()
+end
+
+--- Runs on MouseButton1Click of an event frame
+function eventSelect(frame)
+    if selected and selected.Log then
+        TweenService:Create(selected.Log, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(45, 45, 50)}):Play()
+        selected = nil
+    end
+    
+    for _, v in pairs(logs) do
+        if frame == v.Log then
+            selected = v
+        end
+    end
+    
+    if selected and selected.Log then
+        TweenService:Create(frame, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(60, 60, 70)}):Play()
+        codebox:setRaw(selected.GenScript)
+    end
+end
+
+--- Generates a script from the provided arguments (first has to be remote path)
+function genScript(remote, ...)
+    prevTables = {}
+    local gen = ""
+    local args = {...}
+    
+    if #args > 0 then
+        if not pcall(function()
+                gen = v2v({args = args}) .. "\n"
+            end)
+        then
+            gen = gen .. "-- TableToString failure! Reverting to legacy functionality (results may vary)\nlocal args = {"
+            if not pcall(function()
+                    for i, v in pairs(args) do
+                        if type(i) ~= "Instance" and type(i) ~= "userdata" then
+                            gen = gen .. "\n    [" .. tostring(i) .. "] = "
+                        elseif type(i) == "string" then
+                            gen = gen .. '\n    ["' .. tostring(i) .. '"] = '
+                        elseif type(i) == "userdata" and typeof(i) ~= "Instance" then
+                            gen = gen .. "\n    [" .. typeof(i) .. ".new(" .. tostring(i) .. ")] = "
+                        elseif type(i) == "userdata" then
+                            gen = gen .. "\n    [game." .. i:GetFullName() .. ")] = "
+                        end
+                        
+                        if type(v) ~= "Instance" and type(v) ~= "userdata" then
+                            gen = gen .. tostring(v)
+                        elseif type(v) == "string" then
+                            gen = gen .. '"' .. tostring(v) .. '"'
+                        elseif type(v) == "userdata" and typeof(v) ~= "Instance" then
+                            gen = gen .. typeof(v) .. ".new(" .. tostring(v) .. ")"
+                        elseif type(v) == "userdata" then
+                            gen = gen .. "game." .. v:GetFullName()
+                        end
+                    end
+                    gen = gen .. "\n}\n\n"
+                end)
+            then
+                gen = gen .. "}\n-- Legacy tableToString failure! Unable to decompile."
+            end
+        end
+        
+        if not remote:IsDescendantOf(game) and not getnilrequired then
+            gen = "function getNil(name,class) for _,v in pairs(getnilinstances())do if v.ClassName==class and v.Name==name then return v;end end end\n\n" .. gen
+        end
+        
+        if remote:IsA("RemoteEvent") then
+            gen = gen .. v2s(remote) .. ":FireServer(unpack(args))"
+        elseif remote:IsA("RemoteFunction") then
+            gen = gen .. v2s(remote) .. ":InvokeServer(unpack(args))"
+        end
+    else
+        if remote:IsA("RemoteEvent") then
+            gen = gen .. v2s(remote) .. ":FireServer()"
+        elseif remote:IsA("RemoteFunction") then
+            gen = gen .. v2s(remote) .. ":InvokeServer()"
+        end
+    end
+    
+    prevTables = {}
+    return gen
+end
+
+--- value-to-string с улучшенной поддержкой Buffer
+function v2s(v, l, p, n, vtv, i, pt, path, tables)
+    local vtype = typeof(v)
+    
+    if vtype == "number" then
+        if v == math.huge then
+            return "math.huge"
+        elseif tostring(v):match("nan") then
+            return "0/0 --[[NaN]]"
+        end
+        return tostring(v)
+    elseif vtype == "boolean" then
+        return tostring(v)
+    elseif vtype == "string" then
+        return formatstr(v)
+    elseif vtype == "function" then
+        return f2s(v)
+    elseif vtype == "table" then
+        return t2s(v, l, p, n, vtv, i, pt, path, tables)
+    elseif vtype == "Instance" then
+        return i2p(v)
+    elseif vtype == "UDim" then
+        return string.format("UDim.new(%s, %s)", v2s(v.Scale), v2s(v.Offset))
+    elseif vtype == "UDim2" then
+        return string.format("UDim2.new(%s, %s, %s, %s)", 
+            v2s(v.X.Scale), v2s(v.X.Offset),
+            v2s(v.Y.Scale), v2s(v.Y.Offset))
+    elseif vtype == "Color3" then
+        return string.format("Color3.new(%s, %s, %s)", 
+            v2s(v.R), v2s(v.G), v2s(v.B))
+    elseif vtype == "BrickColor" then
+        return string.format("BrickColor.new(%q)", tostring(v))
+    elseif vtype == "Vector2" then
+        return string.format("Vector2.new(%s, %s)", v2s(v.X), v2s(v.Y))
+    elseif vtype == "Vector3" then
+        return string.format("Vector3.new(%s, %s, %s)", v2s(v.X), v2s(v.Y), v2s(v.Z))
+    elseif vtype == "CFrame" then
+        local x, y, z, R00, R01, R02, R10, R11, R12, R20, R21, R22 = v:GetComponents()
+        return string.format("CFrame.new(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+            v2s(x), v2s(y), v2s(z),
+            v2s(R00), v2s(R01), v2s(R02),
+            v2s(R10), v2s(R11), v2s(R12),
+            v2s(R20), v2s(R21), v2s(R22))
+    elseif vtype == "NumberRange" then
+        return string.format("NumberRange.new(%s, %s)", v2s(v.Min), v2s(v.Max))
+    elseif vtype == "NumberSequence" then
+        local keypoints = v.Keypoints
+        if #keypoints == 0 then
+            return "NumberSequence.new(0)"
+        end
+        local result = "NumberSequence.new("
+        for i, keypoint in ipairs(keypoints) do
+            result = result .. string.format("NumberSequenceKeypoint.new(%s, %s)", 
+                v2s(keypoint.Time), v2s(keypoint.Value))
+            if i < #keypoints then
+                result = result .. ", "
+            end
+        end
+        return result .. ")"
+    elseif vtype == "ColorSequence" then
+        local keypoints = v.Keypoints
+        if #keypoints == 0 then
+            return "ColorSequence.new(Color3.new(1, 1, 1))"
+        end
+        local result = "ColorSequence.new("
+        for i, keypoint in ipairs(keypoints) do
+            result = result .. string.format("ColorSequenceKeypoint.new(%s, %s)", 
+                v2s(keypoint.Time), v2s(keypoint.Value))
+            if i < #keypoints then
+                result = result .. ", "
+            end
+        end
+        return result .. ")"
+    elseif vtype == "Rect" then
+        return string.format("Rect.new(%s, %s)", v2s(v.Min), v2s(v.Max))
+    elseif vtype == "PhysicalProperties" then
+        if v == PhysicalProperties.new() then
+            return "PhysicalProperties.new()"
+        else
+            return string.format("PhysicalProperties.new(%s, %s, %s, %s, %s)",
+                v2s(v.Density), v2s(v.Friction), v2s(v.Elasticity),
+                v2s(v.FrictionWeight), v2s(v.ElasticityWeight))
+        end
+    elseif vtype == "Faces" then
+        local faces = {}
+        if v.Top then table.insert(faces, "Enum.NormalId.Top") end
+        if v.Bottom then table.insert(faces, "Enum.NormalId.Bottom") end
+        if v.Left then table.insert(faces, "Enum.NormalId.Left") end
+        if v.Right then table.insert(faces, "Enum.NormalId.Right") end
+        if v.Back then table.insert(faces, "Enum.NormalId.Back") end
+        if v.Front then table.insert(faces, "Enum.NormalId.Front") end
+        if #faces == 0 then
+            return "Faces.new()"
+        end
+        return "Faces.new(" .. table.concat(faces, ", ") .. ")"
+    elseif vtype == "Axes" then
+        local axes = {}
+        if v.X then table.insert(axes, "Enum.Axis.X") end
+        if v.Y then table.insert(axes, "Enum.Axis.Y") end
+        if v.Z then table.insert(axes, "Enum.Axis.Z") end
+        if #axes == 0 then
+            return "Axes.new()"
+        end
+        return "Axes.new(" .. table.concat(axes, ", ") .. ")"
+    elseif vtype == "Region3" then
+        local center = v.CFrame.Position
+        local size = v.CFrame.Size
+        local min = center - size/2
+        local max = center + size/2
+        return string.format("Region3.new(%s, %s)", v2s(min), v2s(max))
+    elseif vtype == "Region3int16" then
+        return string.format("Region3int16.new(%s, %s)", v2s(v.Min), v2s(v.Max))
+    elseif vtype == "Ray" then
+        return string.format("Ray.new(%s, %s)", v2s(v.Origin), v2s(v.Direction))
+    elseif vtype == "DockWidgetPluginGuiInfo" then
+        return string.format("DockWidgetPluginGuiInfo.new(Enum.InitialDockState.%s, %s, %s, %s, %s, %s, %s)",
+            tostring(v.InitialDockState), v2s(v.InitialEnabled),
+            v2s(v.InitialEnabledShouldOverrideRestore), v2s(v.FloatingXSize),
+            v2s(v.FloatingYSize), v2s(v.MinWidth), v2s(v.MinHeight))
+    elseif vtype == "RBXScriptSignal" then
+        return "nil --[[RBXScriptSignal]]"
+    elseif vtype == "RBXScriptConnection" then
+        return "nil --[[RBXScriptConnection]]"
+    elseif vtype == "PathWaypoint" then
+        return string.format("PathWaypoint.new(%s, %s)", v2s(v.Position), v2s(v.Action))
+    elseif vtype == "RaycastResult" then
+        return "nil --[[RaycastResult]]"
+    elseif vtype == "TweenInfo" then
+        return string.format("TweenInfo.new(%s, Enum.EasingStyle.%s, Enum.EasingDirection.%s, %s, %s, %s)",
+            v2s(v.Time), tostring(v.EasingStyle), tostring(v.EasingDirection),
+            v2s(v.RepeatCount), v2s(v.Reverses), v2s(v.DelayTime))
+    elseif vtype == "Font" then
+        return string.format("Font.new(%q, Enum.FontWeight.%s, Enum.FontStyle.%s)",
+            v.Family, tostring(v.Weight), tostring(v.Style))
+    elseif vtype == "EnumItem" then
+        return tostring(v)
+    elseif vtype == "Enums" then
+        return "Enum"
+    elseif vtype == "Enum" then
+        return "Enum." .. tostring(v)
+    elseif vtype == "Buffer" then
+        -- Поддержка Buffer
+        return bufferToString(v)
+    elseif vtype == "userdata" then
+        return u2s(v)
+    elseif type(v) == "userdata" then
+        return "newproxy(true)"
+    else
+        return "nil --[[" .. vtype .. "]]"
+    end
+end
+
+--- Поддержка Buffer
+function bufferToString(buffer)
+    if typeof(buffer) ~= "Buffer" then
+        return "nil --[[Not a Buffer]]"
+    end
+    
+    -- Пытаемся получить данные из Buffer
+    local success, result = pcall(function()
+        local size = #buffer
+        if size == 0 then
+            return "Buffer.new() --[[Empty Buffer]]"
+        end
+        
+        -- Ограничиваем размер для производительности
+        local maxSize = math.min(size, 100)
+        local data = {}
+        
+        for i = 0, maxSize - 1 do
+            local byte = buffer:ReadByte(i)
+            table.insert(data, string.format("0x%02X", byte))
+        end
+        
+        local dataStr = table.concat(data, ", ")
+        
+        if size > maxSize then
+            return string.format("-- Buffer with %d bytes (first %d shown):\n-- {%s, ...}", size, maxSize, dataStr)
+        else
+            return string.format("-- Buffer with %d bytes:\n-- {%s}", size, dataStr)
+        end
+    end)
+    
+    if success then
+        return result
+    else
+        return "Buffer.new() --[[Buffer read error]]"
+    end
+end
+
+--- value-to-variable
+--- @param t any
+function v2v(t)
+    topstr = ""
+    bottomstr = ""
+    getnilrequired = false
+    local ret = ""
+    local count = 1
+    for i, v in pairs(t) do
+        if type(i) == "string" and i:match("^[%a_]+[%w_]*$") then
+            ret = ret .. "local " .. i .. " = " .. v2s(v, nil, nil, i, true) .. "\n"
+        elseif tostring(i):match("^[%a_]+[%w_]*$") then
+            ret = ret .. "local " .. tostring(i):lower() .. "_" .. tostring(count) .. " = " .. v2s(v, nil, nil, tostring(i):lower() .. "_" .. tostring(count), true) .. "\n"
+        else
+            ret = ret .. "local " .. type(v) .. "_" .. tostring(count) .. " = " .. v2s(v, nil, nil, type(v) .. "_" .. tostring(count), true) .. "\n"
+        end
+        count = count + 1
+    end
+    if getnilrequired then
+        topstr = "function getNil(name,class) for _,v in pairs(getnilinstances())do if v.ClassName==class and v.Name==name then return v;end end end\n" .. topstr
+    end
+    if #topstr > 0 then
+        ret = topstr .. "\n" .. ret
+    end
+    if #bottomstr > 0 then
+        ret = ret .. bottomstr
+    end
+    return ret
+end
+
+--- table-to-string
+--- @param t table
+--- @param l number
+--- @param p table
+--- @param n string
+--- @param vtv boolean
+--- @param i any
+--- @param pt table
+--- @param path string
+--- @param tables table
+function t2s(t, l, p, n, vtv, i, pt, path, tables)
+    for k, x in pairs(getrenv()) do
+        local isgucci, gpath
+        if rawequal(x, t) then
+            isgucci, gpath = true, ""
+        elseif type(x) == "table" then
+            isgucci, gpath = v2p(t, x)
+        end
+        if isgucci then
+            if type(k) == "string" and k:match("^[%a_]+[%w_]*$") then
+                return k .. gpath
+            else
+                return "getrenv()[" .. v2s(k) .. "]" .. gpath
+            end
+        end
+    end
+    if not path then
+        path = ""
+    end
+    if not l then
+        l = 0
+        tables = {}
+    end
+    if not p then
+        p = t
+    end
+    for _, v in pairs(tables) do
+        if n and rawequal(v, t) then
+            bottomstr = bottomstr .. "\n" .. tostring(n) .. tostring(path) .. " = " .. tostring(n) .. tostring(({v2p(v, p)})[2])
+            return "{} --[[DUPLICATE]]"
+        end
+    end
+    table.insert(tables, t)
+    local s =  "{"
+    local size = 0
+    l = l + indent
+    for k, v in pairs(t) do
+        size = size + 1
+        if size > (_G.SimpleSpyMaxTableSize and _G.SimpleSpyMaxTableSize or 1000) then
+            break
+        end
+        if rawequal(k, t) then
+            bottomstr = bottomstr .. "\n" .. tostring(n) .. tostring(path) .. "[" .. tostring(n) .. tostring(path) .. "]" .. " = " .. (v == k and tostring(n) .. tostring(path) or v2s(v, l, p, n, vtv, k, t, path .. "[" .. tostring(n) .. tostring(path) .. "]", tables))
+            size -= 1
+            continue
+        end
+        local currentPath = ""
+        if type(k) == "string" and k:match("^[%a_]+[%w_]*$") then
+            currentPath = "." .. k
+        else
+            currentPath = "[" .. v2s(k, nil, p, n, vtv, i, pt, path) .. "]"
+        end
+        s = s .. "\n" .. string.rep(" ", l) .. "[" .. v2s(k, l, p, n, vtv, k, t, path .. currentPath, tables) .. "] = " .. v2s(v, l, p, n, vtv, k, t, path .. currentPath, tables) .. ","
+    end
+    if #s > 1 then
+        s = s:sub(1, #s - 1)
+    end
+    if size > 0 then
+        s = s .. "\n" .. string.rep(" ", l - indent)
+    end
+    return s .. "}"
+end
+
+--- function-to-string
+function f2s(f)
+    for k, x in pairs(getgenv()) do
+        local isgucci, gpath
+        if rawequal(x, f) then
+            isgucci, gpath = true, ""
+        elseif type(x) == "table" then
+            isgucci, gpath = v2p(f, x)
+        end
+        if isgucci then
+            if type(k) == "string" and k:match("^[%a_]+[%w_]*$") then
+                return k .. gpath
+            else
+                return "getgenv()[" .. v2s(k) .. "]" .. gpath
+            end
+        end
+    end
+    if debug.getinfo(f).name:match("^[%a_]+[%w_]*$") then
+        return "function()end --[[" .. debug.getinfo(f).name .. "]]"
+    end
+    return "function()end --[[" .. tostring(f) .. "]]"
+end
+
+--- instance-to-path
+--- @param i userdata
+function i2p(i)
+    local player = getplayer(i)
+    local parent = i
+    local out = ""
+    if parent == nil then
+        return "nil"
+    elseif player then
+        while true do
+            if parent and parent == player.Character then
+                if player == Players.LocalPlayer then
+                    return 'game:GetService("Players").LocalPlayer.Character' .. out
+                else
+                    return i2p(player) .. ".Character" .. out
+                end
+            else
+                if parent.Name:match("[%a_]+[%w+]*") ~= parent.Name then
+                    out = '[' .. formatstr(parent.Name) .. ']' .. out
+                else
+                    out = "." .. parent.Name .. out
+                end
+            end
+            parent = parent.Parent
+        end
+    elseif parent ~= game then
+        while true do
+            if parent and parent.Parent == game then
+                if game:GetService(parent.ClassName) then
+                    if parent.ClassName == "Workspace" then
+                        return "workspace" .. out
+                    else
+                        return 'game:GetService("' .. parent.ClassName .. '")' .. out
+                    end
+                else
+                    if parent.Name:match("[%a_]+[%w_]*") then
+                        return "game." .. parent.Name .. out
+                    else
+                        return 'game[' .. formatstr(parent.Name) .. ']' .. out
+                    end
+                end
+            elseif parent.Parent == nil then
+                getnilrequired = true
+                return 'getNil(' .. formatstr(parent.Name) .. ', "' .. parent.ClassName .. '")' .. out
+            elseif parent == Players.LocalPlayer then
+                out = ".LocalPlayer" .. out
+            else
+                if parent.Name:match("[%a_]+[%w_]*") ~= parent.Name then
+                    out = '[' .. formatstr(parent.Name) .. ']' .. out
+                else
+                    out = "." .. parent.Name .. out
+                end
+            end
+            parent = parent.Parent
+        end
+    else
+        return "game"
+    end
+end
+
+--- userdata-to-string: userdata
+--- @param u userdata
+function u2s(u)
+    local utype = typeof(u)
+    
+    if utype == "Buffer" then
+        return bufferToString(u)
+    elseif utype == "SharedTable" then
+        return "nil --[[SharedTable]]"
+    elseif utype == "Random" then
+        return "Random.new()"
+    elseif utype == "RBXScriptConnection" then
+        return "nil --[[RBXScriptConnection]]"
+    elseif utype == "RBXScriptSignal" then
+        return "nil --[[RBXScriptSignal]]"
+    elseif utype == "RaycastResult" then
+        return "nil --[[RaycastResult]]"
+    else
+        return "nil --[[" .. utype .. "]]"
+    end
+end
+
+--- Gets the player an instance is descended from
+function getplayer(instance)
+    for _, v in pairs(Players:GetPlayers()) do
+        if v.Character and (instance:IsDescendantOf(v.Character) or instance == v.Character) then
+            return v
+        end
+    end
+end
+
+--- value-to-path (in table)
+function v2p(x, t, path, prev)
+    if not path then
+        path = ""
+    end
+    if not prev then
+        prev = {}
+    end
+    if rawequal(x, t) then
+        return true, ""
+    end
+    for i, v in pairs(t) do
+        if rawequal(v, x) then
+            if type(i) == "string" and i:match("^[%a_]+[%w_]*$") then
+                return true, (path .. "." .. i)
+            else
+                return true, (path .. "[" .. v2s(i) .. "]")
+            end
+        end
+        if type(v) == "table" then
+            local duplicate = false
+            for _, y in pairs(prev) do
+                if rawequal(y, v) then
+                    duplicate = true
+                end
+            end
+            if not duplicate then
+                table.insert(prev, t)
+                local found
+                found, p = v2p(x, v, path, prev)
+                if found then
+                    if type(i) == "string" and i:match("^[%a_]+[%w_]*$") then
+                        return true, "." .. i .. p
+                    else
+                        return true, "[" .. v2s(i) .. "]" .. p
+                    end
+                end
+            end
+        end
+    end
+    return false, ""
+end
+
+--- format s: string, byte encrypt (for weird symbols)
+function formatstr(s)
+    return '"' .. handlespecials(s) .. '"'
+end
+
+--- Adds \'s to the text as a replacement to whitespace chars and other things because string.format can't yayeet
+function handlespecials(s)
+    local i = 0
+    repeat
+        i = i + 1
+        local char = s:sub(i, i)
+        if string.byte(char) then
+            if char == "\n" then
+                s = s:sub(0, i - 1) .. "\\n" .. s:sub(i + 1, -1)
+                i = i + 1
+            elseif char == "\t" then
+                s = s:sub(0, i - 1) .. "\\t" .. s:sub(i + 1, -1)
+                i = i + 1
+            elseif char == "\\" then
+                s = s:sub(0, i - 1) .. "\\\\" .. s:sub(i + 1, -1)
+                i = i + 1
+            elseif char == '"' then
+                s = s:sub(0, i - 1) .. '\\"' .. s:sub(i + 1, -1)
+                i = i + 1
+            elseif string.byte(char) > 126 or string.byte(char) < 32 then
+                s = s:sub(0, i - 1) .. "\\" .. string.byte(char) .. s:sub(i + 1, -1)
+                i = i + #tostring(string.byte(char))
+            end
+        end
+    until char == ""
+    return s
+end
+
+--- finds script from 'src' from getinfo, returns nil if not found
+--- @param src string
+function getScriptFromSrc(src)
+    local realPath
+    local runningTest
+    --- @type number
+    local s, e
+    local match = false
+    if src:sub(1, 1) == "=" then
+        realPath = game
+        s = 2
+    else
+        runningTest = src:sub(2, e and e - 1 or -1)
+        for _, v in pairs(getnilinstances()) do
+            if v.Name == runningTest then
+                realPath = v
+                break
+            end
+        end
+        s = #runningTest + 1
+    end
+    if realPath then
+        e = src:sub(s, -1):find("%.")
+        local i = 0
+        repeat
+            i += 1
+            if not e then
+                runningTest = src:sub(s, -1)
+                local test = realPath.FindFirstChild(realPath, runningTest)
+                if test then
+                    realPath = test
+                end
+                match = true
+            else
+                runningTest = src:sub(s, e)
+                local test = realPath.FindFirstChild(realPath, runningTest)
+                local yeOld = e
+                if test then
+                    realPath = test
+                    s = e + 2
+                    e = src:sub(e + 2, -1):find("%.")
+                    e = e and e + yeOld or e
+                else
+                    e = src:sub(e + 2, -1):find("%.")
+                    e = e and e + yeOld or e
+                end
+            end
+        until match or i >= 50
+    end
+    return realPath
+end
+
+--- schedules the provided function (and calls it with any args after)
+function schedule(f, ...)
+    table.insert(scheduled, {f, ...})
+end
+
+--- the big (well tbh small now) boi task scheduler himself, handles p much anything as quicc as possible
+function taskscheduler()
+    if not toggle then
+        scheduled = {}
+        return
+    end
+    if #scheduled > 1000 then
+        table.remove(scheduled, #scheduled)
+    end
+    if #scheduled > 0 then
+        local currentf = scheduled[1]
+        table.remove(scheduled, 1)
+        if type(currentf) == "table" and type(currentf[1]) == "function" then
+            pcall(unpack(currentf))
+        end
+    end
+end
+
+--- Handles remote logs
+function remoteHandler(hookfunction, methodName, remote, args, func, calling)
+    if remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction") then
+        if funcEnabled and not calling then
+            _, calling = pcall(getScriptFromSrc, debug.getinfo(func).source)
+        end
+        coroutine.wrap(function()
+            if remoteSignals[remote] then
+                remoteSignals[remote]:Fire(args)
+            end
+        end)()
+        if autoblock then
+            if excluding[remote] then
+                return
+            end
+            if not history[remote] then
+                history[remote] = {badOccurances = 0, lastCall = tick()}
+            end
+            if tick() - history[remote].lastCall < 1 then
+                history[remote].badOccurances += 1
+                return
+            else
+                history[remote].badOccurances = 0
+            end
+            if history[remote].badOccurances > 3 then
+                excluding[remote] = true
+                return
+            end
+            history[remote].lastCall = tick()
+        end
+        local functionInfoStr
+        local src
+        if func and islclosure(func) then
+            local functionInfo = {}
+            pcall(function() functionInfo.info = debug.getinfo(func) end)
+            pcall(function() functionInfo.constants = debug.getconstants(func) end)
+            pcall(function() functionInfoStr = v2v{functionInfo = functionInfo} end)
+            pcall(function() if type(calling) == "userdata" then src = calling end end)
+        end
+        if methodName:lower() == "fireserver" then
+            newRemote("event", remote.Name, genScript(remote, table.unpack(args)), remote, functionInfoStr, (blocklist[remote] or blocklist[remote.Name]), src)
+        elseif methodName:lower() == "invokeserver" then
+            newRemote("function", remote.Name, genScript(remote, table.unpack(args)), remote, functionInfoStr, (blocklist[remote] or blocklist[remote.Name]), src)
+        end
+    end
+end
+
+--- Used for hookfunction
+function hookRemote(remoteType, remote, ...)
+    local args = {...}
+    if remoteHooks[remote] then
+        args = remoteHooks[remote](args)
+    end
+    if typeof(remote) == "Instance" and not (blacklist[remote] or blacklist[remote.Name]) then
+        local func
+        local calling
+        if funcEnabled then
+            func = debug.getinfo(4).func
+            calling = useGetCallingScript and getcallingscript() or nil
+        end
+        schedule(remoteHandler, true, remoteType == "RemoteEvent" and "fireserver" or "invokeserver", remote, args, func, calling)
+        if (blocklist[remote] or blocklist[remote.Name]) then
+            return
+        end
+    end
+    if remoteType == "RemoteEvent" then
+        if remoteHooks[remote] then
+            return originalEvent(remote, unpack(args))
+        end
+        return originalEvent(remote, ...)
+    else
+        if remoteHooks[remote] then
+            return originalFunction(remote, unpack(args))
+        end
+        return originalFunction(remote, ...)
+    end
+end
+
+local newnamecall = newcclosure(function(...)
+    local args = {...}
+    local methodName = getnamecallmethod()
+    local remote = args[1]
+    if (methodName:lower() == "invokeserver" or methodName:lower() == "fireserver") and not (blacklist[remote] or blacklist[remote.Name]) then
+        if remoteHooks[remote] then
+            args = remoteHooks[remote]({args, unpack(args, 2)})
+        end
+        local func
+        local calling
+        if funcEnabled then
+            func = debug.getinfo(3).func
+            calling = useGetCallingScript and getcallingscript() or nil
+        end
+        coroutine.wrap(function()
+            schedule(remoteHandler, false, methodName, remote, {unpack(args, 2)}, func, calling)
+        end)()
+    end
+    if typeof(remote) == "Instance" and (methodName:lower() == "invokeserver" or methodName:lower() == "fireserver") and (blocklist[remote] or blocklist[remote.Name]) then
+        return nil
+    elseif (methodName:lower() == "invokeserver" or methodName:lower() == "fireserver") and remoteHooks[remote] then
+        return original(unpack(args))
+    else
+        return original(...)
+    end
+end)
+
+local newFireServer = newcclosure(function(...) return hookRemote("RemoteEvent", ...) end)
+
+local newInvokeServer = newcclosure(function(...) return hookRemote("RemoteFunction", ...) end)
+
+--- Toggles on and off the remote spy
+function toggleSpy()
+    if not toggle then
+        setreadonly(gm, false)
+        if not original then
+            original = gm.__namecall
+            if not original then
+                warn("SimpleSpy: namecall method not found!\n")
+                onToggleButtonClick()
+                return
+            end
+        end
+        gm.__namecall = newnamecall
+        originalEvent = hookfunction(remoteEvent.FireServer, newFireServer)
+        originalFunction = hookfunction(remoteFunction.InvokeServer, newInvokeServer)
+    else
+        setreadonly(gm, false)
+        gm.__namecall = original
+        hookfunction(remoteEvent.FireServer, originalEvent)
+        hookfunction(remoteFunction.InvokeServer, originalFunction)
+    end
+end
+
+--- Toggles between the two remotespy methods (hookfunction currently = disabled)
+function toggleSpyMethod()
+    toggleSpy()
+    toggle = not toggle
+end
+
+--- Shuts down the remote spy
+function shutdown()
+    if schedulerconnect then
+        schedulerconnect:Disconnect()
+    end
+    for _, connection in pairs(connections) do
+        coroutine.wrap(function()
+            connection:Disconnect()
+        end)()
+    end
+    setreadonly(gm, false)
+    SimpleSpy2:Destroy()
+    hookfunction(remoteEvent.FireServer, originalEvent)
+    hookfunction(remoteFunction.InvokeServer, originalFunction)
+    gm.__namecall = original
+    _G.SimpleSpyExecuted = false
+end
+
+-- main
+if not _G.SimpleSpyExecuted then
+    local succeeded, err = pcall(function()
+        _G.SimpleSpyShutdown = shutdown
+        ContentProvider:PreloadAsync({"rbxassetid://6065821980", "rbxassetid://6065774948", "rbxassetid://6065821086", "rbxassetid://6065821596"})
+        onToggleButtonClick()
+        RemoteTemplate.Parent = nil
+        FunctionTemplate.Parent = nil
+        codebox = Highlight.new(CodeBox)
+        codebox:setRaw("")
+        getgenv().SimpleSpy = SimpleSpy
+        ToolTipText:GetPropertyChangedSignal("Text"):Connect(scaleToolTip)
+        
+        -- События для кнопок
+        ToggleButton.MouseButton1Click:Connect(onToggleButtonClick)
+        CloseButton.MouseButton1Click:Connect(shutdown)
+        
+        ToggleButton.MouseEnter:Connect(onToggleButtonHover)
+        ToggleButton.MouseLeave:Connect(onToggleButtonUnhover)
+        CloseButton.MouseEnter:Connect(onXButtonHover)
+        CloseButton.MouseLeave:Connect(onXButtonUnhover)
+        
+        -- Для мобильных устройств
+        if isMobile then
+            ToggleButton.TouchTap:Connect(onToggleButtonClick)
+            CloseButton.TouchTap:Connect(shutdown)
+        end
+        
+        connectResize = function()
+            workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(bringBackOnResize)
+        end
+        connectResize()
+        
+        SimpleSpy2.Enabled = true
+        coroutine.wrap(function()
+            wait(1)
+            onToggleButtonUnhover()
+        end)()
+        schedulerconnect = RunService.Heartbeat:Connect(taskscheduler)
+        if syn and syn.protect_gui then pcall(syn.protect_gui, SimpleSpy2) end
+        SimpleSpy2.Parent = gethui and gethui() or CoreGui
+    end)
+    if succeeded then
+        _G.SimpleSpyExecuted = true
+    else
+        warn("A fatal error has occured, SimpleSpy was unable to launch properly.\nPlease DM this error message to @exx#9394:\n\n" .. tostring(err))
+        SimpleSpy2:Destroy()
+        hookfunction(remoteEvent.FireServer, originalEvent)
+        hookfunction(remoteFunction.InvokeServer, originalFunction)
+        gm.__namecall = original
+        return
+    end
+else
+    SimpleSpy2:Destroy()
+    return
+end
+
+----- ADD ONS -----
+
+--- Добавляем кнопку для тестирования Buffer
+newButton(
+    "Test Buffer",
+    function() return "Test Buffer serialization" end,
+    function()
+        -- Создаем тестовый Buffer
+        local testBuffer
+        if pcall(function() testBuffer = buffer.create(16) end) then
+            -- Заполняем Buffer тестовыми данными
+            for i = 0, 15 do
+                pcall(function() testBuffer:WriteU8(i, i * 8) end)
+            end
+            
+            local testData = {
+                RegularBuffer = testBuffer,
+                BufferTest = "Buffer serialization test",
+                MixedData = {
+                    Number = 42,
+                    String = "Hello",
+                    Color = Color3.new(1, 0, 0),
+                    Vector = Vector3.new(1, 2, 3),
+                    NestedBuffer = testBuffer
+                }
+            }
+            
+            local serialized = SimpleSpy:ValueToString(testData)
+            codebox:setRaw("-- Buffer Test Output\n\n" .. serialized)
+            ToolTipText.Text = "Buffer serialization test complete!"
+        else
+            ToolTipText.Text = "Buffer API not available in this environment"
+        end
+    end
+)
+
+--- Добавляем кнопку для тестирования улучшенной сериализации
+newButton(
+    "Test Serialize",
+    function() return "Test enhanced serialization of UDim, Color3, Buffer, etc." end,
+    function()
+        -- Создаем тестовый Buffer если доступно
+        local testBuffer
+        local hasBuffer = pcall(function() 
+            testBuffer = buffer.create(8)
+            for i = 0, 7 do
+                testBuffer:WriteU8(i, i * 16)
+            end
+        end)
+        
+        local testData = {
+            UDimExample = UDim.new(0.5, 100),
+            UDim2Example = UDim2.new(0, 100, 0.5, 200),
+            Color3Example = Color3.new(1, 0.5, 0),
+            Color3RGBExample = Color3.fromRGB(255, 128, 0),
+            Vector2Example = Vector2.new(100, 200),
+            Vector3Example = Vector3.new(1, 2, 3),
+            CFrameExample = CFrame.new(0, 5, 0) * CFrame.Angles(math.rad(45), 0, 0),
+            BrickColorExample = BrickColor.new("Bright blue"),
+            NumberRangeExample = NumberRange.new(0, 10),
+            RectExample = Rect.new(Vector2.new(0, 0), Vector2.new(100, 100)),
+            FacesExample = Faces.new(Enum.NormalId.Top, Enum.NormalId.Bottom),
+            AxesExample = Axes.new(Enum.Axis.X, Enum.Axis.Y),
+            TweenInfoExample = TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            FontExample = Font.new("Gotham", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+        }
+        
+        -- Добавляем Buffer если доступно
+        if hasBuffer then
+            testData.BufferExample = testBuffer
+        end
+        
+        local serialized = SimpleSpy:ValueToString(testData)
+        codebox:setRaw("-- Enhanced Serialization Test Output\n\n" .. serialized)
+        ToolTipText.Text = "Enhanced serialization test complete!"
+    end
+)
+
+-- Copies the contents of the codebox
+newButton(
+    "Copy Code",
+    function() return "Click to copy code" end,
+    function()
+        setclipboard(codebox:getString())
+        ToolTipText.Text = "Copied successfully!"
+    end
+)
+
+--- Copies the source script (that fired the remote)
+newButton(
+    "Copy Remote",
+    function() return "Click to copy the path of the remote" end,
+    function()
+        if selected then
+            setclipboard(v2s(selected.Remote))
+            ToolTipText.Text = "Copied!"
+        end
+    end
+)
+
+-- Executes the contents of the codebox through loadstring
+newButton(
+    "Run Code",
+    function() return "Click to execute code" end,
+    function()
+        local orText = "Click to execute code"
+        ToolTipText.Text = "Executing..."
+        local succeeded = pcall(function() return loadstring(codebox:getString())() end)
+        if succeeded then
+            ToolTipText.Text = "Executed successfully!"
+        else
+            ToolTipText.Text = "Execution error!"
+        end
+    end
+)
+
+--- Gets the calling script (not super reliable but w/e)
+newButton(
+    "Get Script",
+    function() return "Click to copy calling script to clipboard\nWARNING: Not super reliable, nil == could not find" end,
+    function()
+        if selected then
+            setclipboard(SimpleSpy:ValueToString(selected.Source))
+            ToolTipText.Text = "Done!"
+        end
+    end
+)
+
+--- Decompiles the script that fired the remote and puts it in the code box
+newButton(
+    "Function Info",
+    function() return "Click to view calling function information" end,
+    function()
+        if selected then
+            if selected.Function then
+                codebox:setRaw("-- Calling function info\n-- Generated by the SimpleSpy serializer\n\n" .. tostring(selected.Function))
+            end
+            ToolTipText.Text = "Done! Function info generated by the SimpleSpy Serializer."
+        end
+    end
+)
+
+--- Clears the Remote logs
+newButton(
+    "Clr Logs",
+    function() return "Click to clear logs" end,
+    function()
+        ToolTipText.Text = "Clearing..."
+        logs = {}
+        for _, v in pairs(LogList:GetChildren()) do
+            if not v:IsA("UIListLayout") then
+                v:Destroy()
+            end
+        end
+        codebox:setRaw("")
+        selected = nil
+        ToolTipText.Text = "Logs cleared!"
+    end
+)
+
+--- Excludes the selected.Log Remote from the RemoteSpy
+newButton(
+    "Exclude (i)",
+    function() return "Click to exclude this Remote" end,
+    function()
+        if selected then
+            blacklist[selected.Remote] = true
+            ToolTipText.Text = "Excluded!"
+        end
+    end
+)
+
+--- Excludes all Remotes that share the same name as the selected.Log remote from the RemoteSpy
+newButton(
+    "Exclude (n)",
+    function() return "Click to exclude all remotes with this name" end,
+    function()
+        if selected then
+            blacklist[selected.Name] = true
+            ToolTipText.Text = "Excluded!"
+        end
+    end
+)
+
+--- clears blacklist
+newButton(
+    "Clr Blacklist",
+    function() return "Click to clear the blacklist" end,
+    function()
+        blacklist = {}
+        ToolTipText.Text = "Blacklist cleared!"
+    end
+)
+
+--- Prevents the selected.Log Remote from firing the server (still logged)
+newButton(
+    "Block (i)",
+    function() return "Click to stop this remote from firing" end,
+    function()
+        if selected then
+            blocklist[selected.Remote] = true
+            ToolTipText.Text = "Blocked!"
+        end
+    end
+)
+
+--- Prevents all remotes from firing that share the same name as the selected.Log remote from the RemoteSpy (still logged)
+newButton(
+    "Block (n)",
+    function() return "Click to stop remotes with this name from firing" end,
+    function()
+        if selected then
+            blocklist[selected.Name] = true
+            ToolTipText.Text = "Blocked!"
+        end
+    end
+)
+
+--- clears blacklist
+newButton(
+    "Clr Blocklist",
+    function() return "Click to stop blocking remotes" end,
+    function()
+        blocklist = {}
+        ToolTipText.Text = "Blocklist cleared!"
+    end
+)
+
+--- Attempts to decompile the source script
+newButton(
+    "Decompile",
+    function() return "Attempts to decompile source script\nWARNING: Not super reliable, nil == could not find" end,
+    function()
+        if selected then
+            if selected.Source then
+                codebox:setRaw(decompile(selected.Source))
+                ToolTipText.Text = "Done!"
+            else
+                ToolTipText.Text = "Source not found!"
+            end
+        end
+    end
+)
+
+newButton(
+    "Disable Info",
+    function() return string.format("[%s] Toggle function info (because it can cause lag in some games)", funcEnabled and "ENABLED" or "DISABLED") end,
+    function()
+        funcEnabled = not funcEnabled
+        ToolTipText.Text = string.format("[%s] Toggle function info (because it can cause lag in some games)", funcEnabled and "ENABLED" or "DISABLED")
+    end
+)
+
+newButton(
+    "Autoblock",
+    function() return string.format("[%s] [BETA] Intelligently detects and excludes spammy remote calls from logs", autoblock and "ENABLED" or "DISABLED") end,
+    function()
+        autoblock = not autoblock
+        ToolTipText.Text = string.format("[%s] [BETA] Intelligently detects and excludes spammy remote calls from logs", autoblock and "ENABLED" or "DISABLED")
+        history = {}
+        excluding = {}
+    end
+)
+
+newButton(
+    "CallingScript",
+    function() return string.format("[%s] [UNSAFE] Uses 'getcallingscript' to get calling script for Decompile and GetScript. Much more reliable, but opens up SimpleSpy to detection and/or instability.", useGetCallingScript and "ENABLED" or "DISABLED") end,
+    function()
+        useGetCallingScript = not useGetCallingScript
+        ToolTipText.Text = string.format("[%s] [UNSAFE] Uses 'getcallingscript' to get calling script for Decompile and GetScript. Much more reliable, but opens up SimpleSpy to detection and/or instability.", useGetCallingScript and "ENABLED" or "DISABLED")
+    end
+)
+
+-- Добавляем кнопку для мобильной помощи
+if isMobile then
+    newButton(
+        "Mobile Help",
+        function() return "Drag the top bar to move the window on mobile devices" end,
+        function()
+            ToolTipText.Text = "Drag anywhere on the window to move it on mobile devices"
+        end
+    )
+end
