@@ -162,6 +162,8 @@ ToggleButton.TextSize = 18
 ToggleButton.Font = Enum.Font.GothamBold
 ToggleButton.AutoButtonColor = true
 ToggleButton.Visible = true
+ToggleButton.Active = true
+ToggleButton.Draggabled = true
 
 -- Эффект округления
 local UICorner = Instance.new("UICorner")
@@ -742,17 +744,6 @@ StatusButton.MouseButton1Click:Connect(toggleSpyState)
 CloseButton.MouseButton1Click:Connect(function()
     toggleGUI()
 end)
-
--- Для мобильных устройств
-if isMobile then
-    ToggleButton.TouchStarted:Connect(startButtonDrag)
-    ToggleButton.TouchEnded:Connect(endButtonDrag)
-    ToggleButton.TouchMoved:Connect(updateButtonDrag)
-    ToggleButton.TouchTap:Connect(toggleGUI)
-    
-    StatusButton.TouchTap:Connect(toggleSpyState)
-    CloseButton.TouchTap:Connect(function() toggleGUI() end)
-end
 
 -- Функции сериализации (упрощенные)
 local function v2s(value)
