@@ -1,0 +1,223 @@
+--[[
+    АВТОМАТИЧЕСКОЕ УБИЙСТВО ВСЕХ МОНСТРОВ
+    Работает в реальном времени, убивает новых монстров сразу при появлении
+--]]
+
+local replicatedStorage = game:GetService("ReplicatedStorage")
+local players = game:GetService("Players")
+local localPlayer = players.LocalPlayer
+
+-- Получаем события ACS
+local acsFramework = replicatedStorage:WaitForChild("PARACAMReplicatedFramework"):WaitForChild("ACS_Engine")
+local events = acsFramework:WaitForChild("Events")
+local damageEvent = events:WaitForChild("Damage")
+
+-- Получаем оружие игрока
+local function getWeapon()
+    local character = localPlayer.Character
+    if not character then
+        localPlayer.CharacterAdded:Wait()
+        character = localPlayer.Character
+    end
+    return character:WaitForChild("G17")
+end
+
+-- Данные оружия с максимальным уроном
+local weaponData = {
+    Ammo = 999,
+    DamageFallOf = 0,
+    ShootRate = 999999,
+    IgnoreProtection = true,  -- Игнорируем защиту
+    EnableZeroing = false,
+    ExplosionRadius = 100,
+    IncludeChamberedBullet = true,
+    Zoom = 70,
+    HolsterCFrame = CFrame.new(0, 0, 0),
+    MaxRecoilPower = 0,
+    SightAtt = "",
+    BulletPenetration = 999999,
+    CanCheckMag = true,
+    gunRecoilMult = 0,
+    MuzzleVelocity = 10000,
+    ExplosionType = "Default",
+    CanBreachDoor = true,
+    AmmoInGun = 999,
+    camRecoil = {camRecoilUp = {0, 0}, camRecoilRight = {0, 0}, camRecoilLeft = {0, 0}, camRecoilTilt = {0, 0}},
+    gunName = "G17",
+    HeadDamage = {999999, 999999},
+    Zoom2 = 70,
+    MagCount = true,
+    InfraRed = false,
+    AimInaccuracyStepAmount = 0,
+    CurrentZero = 0,
+    RainbowMode = false,
+    CrosshairOffset = 0,
+    AimSpreadReduction = 1,
+    ShootType = 1,
+    FlashChance = 0,
+    Bullets = 1,
+    EnableHUD = false,
+    SlideEx = CFrame.new(0, 0, 0),
+    Tracer = false,
+    LimbDamage = {999999, 999999},
+    Holster = true,
+    UnderBarrelAtt = "",
+    Jammed = false,
+    TracerEveryXShots = 0,
+    CenterDot = false,
+    MinSpread = 0,
+    Type = "Gun",
+    FireModes = {Auto = true, ChangeFiremode = false, Burst = false, Semi = false},
+    BarrelAtt = "",
+    OtherAtt = "",
+    TorsoDamage = {999999, 999999},
+    ShellInsert = false,
+    HolsterPoint = "Right Leg",
+    gunRecoil = {gunRecoilTilt = {0, 0}, gunRecoilUp = {0, 0}, gunRecoilLeft = {0, 0}, gunRecoilRight = {0, 0}},
+    BurstShot = 1,
+    camRecoilMult = 0,
+    RecoilPowerStepAmount = 0,
+    AimRecoilReduction = 1,
+    canAim = true,
+    MinRecoilPower = 0,
+    IsLauncher = false,
+    CrossHair = false,
+    AimInaccuracyDecrease = 1,
+    RandomTracer = {Enabled = false, Chance = 0},
+    WalkMult = 1,
+    ZeroIncrement = 50,
+    BulletType = "9mm",
+    ADSEnabled = {true, false},
+    SlideLock = true,
+    TracerColor = Color3.new(1, 1, 1),
+    MaxZero = 500,
+    MaxStoredAmmo = 9999,
+    CanBreak = false,
+    BulletFlare = false,
+    MaxSpread = 0,
+    StoredAmmo = 9999,
+    ShellEjectionMod = true,
+    MinDamage = 999999,
+    BulletDrop = 0,
+    WeaponWeight = 2,
+    ExplosiveAmmo = false
+}
+
+-- Модификаторы урона (максимальное усиление)
+local damageModifiers = {
+    SpreadRM = 0,
+    RecoilPowerStepAmount = 0,
+    Zoom2Value = 70,
+    MaxSpread = 0,
+    MinRecoilPower = 0,
+    DamageMod = 999999,
+    minDamageMod = 999999,
+    MaxRecoilPower = 0,
+    AimInaccuracyStepAmount = 0,
+    WalkMult = 0,
+    AimRM = 0,
+    gunRecoilMod = {RecoilRight = 0, RecoilUp = 0, RecoilTilt = 0, RecoilLeft = 0},
+    MuzzleVelocity = 100,
+    ZoomValue = 70,
+    MinSpread = 0,
+    AimInaccuracyDecrease = 1,
+    camRecoilMod = {RecoilRight = 0, RecoilTilt = 0, RecoilUp = 0, RecoilLeft = 0},
+    adsTime = 0
+}
+
+-- ID выстрела (можно оставить пустым)
+local bulletID = "{ddf242a8-c21e-494b-8678-f4bae1e0e5b1}-10967669435"
+
+-- Функция убийства монстра
+local function killMonster(monster, humanoid)
+    if not monster or not monster.Parent then return false end
+    if not humanoid or humanoid.Health <= 0 then return false end
+    
+    local weapon = getWeapon()
+    if not weapon then return false end
+    
+    -- Огромный урон для гарантированного убийства
+    local damage = humanoid.Health * 10 + 99999
+    
+    local args = {weapon, humanoid, damage, 1, weaponData, damageModifiers, bulletID}
+    
+    local success = pcall(function()
+        damageEvent:InvokeServer(unpack(args))
+    end)
+    
+    if success then
+        print("✅ Убит монстр: " .. monster.Name)
+    end
+    return success
+end
+
+-- Функция поиска и убийства всех монстров в папке
+local function killAllMonstersInBatch(batchFolder)
+    if not batchFolder or not batchFolder.Parent then return end
+    
+    for _, monster in ipairs(batchFolder:GetChildren()) do
+        if monster:IsA("Model") and monster:FindFirstChild("Humanoid") then
+            local humanoid = monster.Humanoid
+            if humanoid.Health > 0 then
+                killMonster(monster, humanoid)
+            end
+        end
+    end
+end
+
+-- Отслеживаем новых монстров через ChildAdded
+local function setupMonsterTracker(batchFolder)
+    batchFolder.ChildAdded:Connect(function(monster)
+        task.wait(0.05)  -- Небольшая задержка для инициализации
+        if monster:IsA("Model") then
+            local humanoid = monster:FindFirstChild("Humanoid")
+            if humanoid then
+                killMonster(monster, humanoid)
+            end
+            
+            -- Также отслеживаем появление Humanoid внутри монстра
+            monster.ChildAdded:Connect(function(child)
+                if child.Name == "Humanoid" and child:IsA("Humanoid") then
+                    task.wait(0.05)
+                    killMonster(monster, child)
+                end
+            end)
+        end
+    end)
+end
+
+-- Главная функция инициализации
+local function initialize()
+    -- Ждем появления папки с монстрами
+    local generatorBatch = workspace:FindFirstChild("GeneratorMonsterBatch")
+    
+    if not generatorBatch then
+        print("⏳ Ожидание папки GeneratorMonsterBatch...")
+        generatorBatch = workspace:WaitForChild("GeneratorMonsterBatch")
+    end
+    
+    print("✅ Найдена папка: GeneratorMonsterBatch")
+    
+    -- Убиваем всех существующих монстров
+    killAllMonstersInBatch(generatorBatch)
+    
+    -- Настраиваем отслеживание новых монстров
+    setupMonsterTracker(generatorBatch)
+    
+    -- Также отслеживаем появление новых папок (если монстры спавнятся в других местах)
+    workspace.ChildAdded:Connect(function(child)
+        if child.Name == "GeneratorMonsterBatch" or child:FindFirstChild("Monster") then
+            task.wait(0.1)
+            if child:FindFirstChild("Monster") then
+                killAllMonstersInBatch(child)
+            end
+            setupMonsterTracker(child)
+        end
+    end)
+    
+    print("🔫 Система автоматического убийства монстров активирована!")
+end
+
+-- Запускаем с небольшой задержкой
+task.wait(1)
+initialize()
